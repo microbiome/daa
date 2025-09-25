@@ -96,14 +96,15 @@ run this yourself to check for any updates on how to cite **daa**.
 print(citation("daa"), bibtex = TRUE)
 #> To cite package 'daa' in publications use:
 #> 
-#>   Borman T, Lahti L (2025). _daa: Differential abundance analysis_. R
-#>   package version 0.99.0, <https://github.com/microbiome/daa>.
+#>   Borman T, Lahti L, Muluh M (2025). _daa: Differential abundance
+#>   analysis_. R package version 0.99.0,
+#>   <https://github.com/microbiome/daa>.
 #> 
 #> A BibTeX entry for LaTeX users is
 #> 
 #>   @Manual{,
 #>     title = {daa: Differential abundance analysis},
-#>     author = {Tuomas Borman and Leo Lahti},
+#>     author = {Tuomas Borman and Leo Lahti and Muluh Muluh},
 #>     year = {2025},
 #>     note = {R package version 0.99.0},
 #>     url = {https://github.com/microbiome/daa},
