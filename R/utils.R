@@ -186,6 +186,7 @@
 #' @importFrom S4Vectors DataFrame
 #' @importFrom dplyr across all_of group_split arrange
 #' @importFrom purrr map_df
+#' @importFrom stats as.formula
 .calc_daa <- function(df, y, group, split.by, paired, FUN,
                       p.adjust.method = "fdr", ...) {
     # Identify pairing variable

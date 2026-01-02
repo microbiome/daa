@@ -35,32 +35,32 @@ addWilcoxon(x, ...)
 \item{...}{Additional arguments passed to \code{rstatix::wilcox_test}.}
 
 \item{assay.type}{\code{Character scalar} or \code{NULL}. Specifies assay to
-test. Tests are run per feature. (Default: \code{NULL})}
+test. Tests are run per feature. (Default: \code{NULL} )}
 
 \item{row.var}{\code{Character scalar} or \code{NULL}. Specifies variable
-from \code{rowData(x)} to test. (Default: \code{NULL})}
+from \code{rowData(x)} to test. (Default: \code{NULL} )}
 
 \item{col.var}{\code{Character scalar} or \code{NULL}. Specifies variable
-from \code{colData(x)} to test. (Default: \code{NULL})}
+from \code{colData(x)} to test. (Default: \code{NULL} )}
 
 \item{formula}{\code{formula}. A formula specifying the grouping variable,
 e.g., \code{~ SampleType}. The RHS specifies the comparison groups.
 For >2 levels, pairwise comparisons are performed.}
 
 \item{split.by}{\code{Character vector} or \code{NULL}. Columns to split by.
-Tests are run separately for each combination. (Default: \code{NULL})}
+Tests are run separately for each combination. (Default: \code{NULL} )}
 
 \item{pair.by}{\code{Character scalar} or \code{NULL}. Column for pairing
-samples in paired tests. (Default: \code{NULL})}
+samples in paired tests. (Default: \code{NULL} )}
 
 \item{features}{\code{Character vector} or \code{NULL}. Specific features
-to test when using \code{assay.type}. (Default: \code{NULL})}
+to test when using \code{assay.type}. (Default: \code{NULL} )}
 
 \item{p.adjust.method}{\code{Character scalar}. Method for p-value
-adjustment. (Default: \code{"fdr"})}
+adjustment. (Default: \code{"fdr"} )}
 
 \item{name}{\code{Character scalar}. Column name prefix for results.
-(Default: \code{"wilcoxon"})}
+(Default: \code{"wilcoxon"} )}
 }
 \value{
 \code{getWilcoxon} returns a \code{DataFrame} with test results.
@@ -87,7 +87,7 @@ tse <- tse[1:50, tse$SampleType \%in\% c("Feces", "Skin")]
 res <- getWilcoxon(tse, assay.type = "counts", formula = ~SampleType)
 
 # Test colData variable (e.g., alpha diversity)
-tse <- mia::addAlpha(tse)
+tse <- mia::addAlpha(tse, index = "shannon_diversity")
 res <- getWilcoxon(tse, col.var = "shannon_diversity", formula = ~SampleType)
 
 }

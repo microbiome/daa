@@ -74,22 +74,23 @@ NULL
 #' @rdname getWilcoxon
 #' @export
 #' @importFrom SingleCellExperiment altExp
-setMethod( "getWilcoxon", "SingleCellExperiment", function( x, ... ){
+#' @importFrom methods callNextMethod
+setMethod("getWilcoxon", "SingleCellExperiment", function(x, ...) {
     x <- .check_and_get_altExp(x, ...)
     res <- callNextMethod(x, ...)
     return(res)
-} )
+})
 
 #' @rdname getWilcoxon
 #' @export
 #' @importFrom SummarizedExperiment assay colData rowData
 #' @importFrom rstatix wilcox_test adjust_pvalue
 #' @importFrom S4Vectors DataFrame
-setMethod( 
+setMethod(
     "getWilcoxon", "SummarizedExperiment",
-    function( x, assay.type = NULL, row.var = NULL, col.var = NULL,
+    function(x, assay.type = NULL, row.var = NULL, col.var = NULL,
              formula, split.by = NULL, pair.by = NULL, features = NULL,
-             p.adjust.method = "fdr", ... ){
+             p.adjust.method = "fdr", ...) {
         ############################# Input check ##############################
         group <- .check_input(
             x, assay.type, row.var, col.var, formula,
@@ -115,10 +116,10 @@ setMethod(
 
 #' @rdname getWilcoxon
 #' @export
-setMethod( 
+setMethod(
     "addWilcoxon", "SummarizedExperiment",
-    function( x, name = "wilcoxon", ... ){
-        if( !.is_non_empty_string(name) ){
+    function(x, name = "wilcoxon", ...) {
+        if (!.is_non_empty_string(name)) {
             stop("'name' must be a single character value.", call. = FALSE)
         }
         res <- getWilcoxon(x, ...)
@@ -134,7 +135,7 @@ setMethod(
 ################################################################################
 
 #' @importFrom rstatix wilcox_test
-.run_wilcoxon <- function( df, y, group, split.by, paired, p.adjust.method, ... ){
+.run_wilcoxon <- function(df, y, group, split.by, paired, p.adjust.method, ...) {
     .calc_daa(
         df = df, y = y, group = group, split.by = split.by,
         paired = paired, FUN = rstatix::wilcox_test,
