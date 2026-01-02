@@ -58,27 +58,6 @@ BiocManager::install(version = "devel")
 BiocManager::install("daa")
 ```
 
-## Example
-
-```{r example, message = FALSE}
-library(daa)
-library(mia)
-
-# Load example data (HintikkaXOData is used in unit tests)
-data(HintikkaXOData, package = "mia")
-tse <- MultiAssayExperiment::getWithColData(HintikkaXOData, "microbiota")
-
-# Standardize assay data
-tse <- transformAssay(tse, method = "relabundance")
-
-# Subset to first 50 features for demonstration
-tse <- tse[1:50, ]
-
-# Run Wilcoxon test comparing groups in 'Fat' metadata column
-res <- getWilcoxon(tse, assay.type = "relabundance", formula = ~Fat)
-head(res)
-```
-
 ## Contributing
 
 Contributions are welcome in the form of feedback, issues, and pull requests.

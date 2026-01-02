@@ -45,7 +45,7 @@ test_that("getTtest respects features argument", {
 ################################################################################
 
 test_that("getTtest with col.var works", {
-    tse_alpha <- mia::addAlpha(tse)
+    tse_alpha <- mia::addAlpha(tse, index = "shannon_diversity")
     result <- getTtest(tse_alpha,
         col.var = "shannon_diversity",
         formula = ~Fat
