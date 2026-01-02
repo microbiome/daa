@@ -60,7 +60,7 @@ test_that(".check_input validates formula variable exists", {
             tse, "relabundance", NULL, NULL, ~nonexistent,
             NULL, NULL, NULL
         ),
-        "not found"
+        "must be a single character value from the following options"
     )
 })
 
@@ -70,7 +70,7 @@ test_that(".check_input validates split.by exists", {
             tse, "relabundance", NULL, NULL, ~Fat,
             "nonexistent", NULL, NULL
         ),
-        "not found"
+        "must be a single character value from the following options"
     )
 })
 
@@ -80,7 +80,7 @@ test_that(".check_input validates pair.by exists", {
             tse, "relabundance", NULL, NULL, ~Fat, NULL,
             "nonexistent", NULL
         ),
-        "not found"
+        "must be a single character value from the following options"
     )
 })
 

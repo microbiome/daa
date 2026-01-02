@@ -10,6 +10,12 @@
 .add_values_to_colData <- mia:::.add_values_to_colData
 
 ################################################################################
+# Internal methods imported from miaViz
+################################################################################
+
+.check_metadata_variable <- miaViz:::.check_metadata_variable
+
+################################################################################
 # Input validation - matching plotBoxplot's pattern
 ################################################################################
 
@@ -92,17 +98,14 @@
 #' @noRd
 #' @importFrom SummarizedExperiment colData rowData
 .check_metadata_var <- function(x, var, assay.type, row.var, col.var) {
-    # When assay.type or col.var is used, check colData
     # When row.var is used, check rowData
-    if (!is.null(row.var)) {
-        if (!var %in% colnames(rowData(x))) {
-            stop("'", var, "' not found in rowData(x).", call. = FALSE)
-        }
-    } else {
-        if (!var %in% colnames(colData(x))) {
-            stop("'", var, "' not found in colData(x).", call. = FALSE)
-        }
-    }
+    # When assay.type or col.var is used, check colData
+    .check_metadata_variable(
+        tse = x,
+        var = var,
+        row = !is.null(row.var),
+        col = !is.null(assay.type) || !is.null(col.var)
+    )
     invisible(NULL)
 }
 
@@ -153,25 +156,45 @@
     all_vars <- c(group, split.by, pair.by)
     all_vars <- unique(all_vars[!sapply(all_vars, is.null)])
 
-    # Get data based on source - matching plotBoxplot's pattern
+    # Get data based on source - matching getDA's smart routing pattern
     if (!is.null(assay.type)) {
         # Subset features if specified
         if (!is.null(features)) {
             x <- x[features, , drop = FALSE]
         }
-        # Use meltSE - column name is the assay.type
-        df <- meltSE(x, assay.type = assay.type, add.col = all_vars)
-    } else if (!is.null(row.var)) {
-        # Get from rowData - column name is row.var
+        # Automatically detect which variables are in rowData vs colData
+        row_vars <- vapply(all_vars, function(v) {
+            v %in% colnames(rowData(x))
+        }, logical(1L))
+        col_vars <- all_vars[!row_vars]
+        row_vars <- all_vars[row_vars]
+        # Use meltSE with smart routing
+        df <- meltSE(
+            x,
+            assay.type = assay.type,
+            add.col = c(col.var, pair.by, col_vars),
+            add.row = c(row.var, row_vars)
+        )
+    }
+    # If row.var was specified, get the data from rowData
+    if (!is.null(row.var)) {
         df <- rowData(x)[, c(row.var, all_vars), drop = FALSE]
-    } else {
-        # Get from colData - column name is col.var
-        df <- colData(x)[, c(col.var, all_vars), drop = FALSE]
+    }
+    # If col.var was specified, get the data from colData
+    if (!is.null(col.var)) {
+        df <- colData(x)[, c(col.var, pair.by, all_vars), drop = FALSE]
     }
 
     df <- as.data.frame(df)
     attr(df, "pair.by") <- pair.by
     .check_group(df, group)
+
+    # Validate dependent variable is numeric
+    y_var <- if (!is.null(assay.type)) assay.type else if (!is.null(row.var)) row.var else col.var
+    if (!is.numeric(df[[y_var]])) {
+        stop("The dependent variable must be numeric.", call. = FALSE)
+    }
+
     df
 }
 
