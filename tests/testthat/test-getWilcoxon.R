@@ -59,10 +59,9 @@ test_that("getWilcoxon with col.var works", {
 ################################################################################
 
 test_that("getWilcoxon handles sparse data with warnings", {
-    # Create a feature with all zeros in one group to trigger error
+    # Create a feature with all NAs to trigger error
     tse_sparse <- tse
-    assay(tse_sparse, "relabundance")[1, tse_sparse$Fat == "High"] <- 0
-    assay(tse_sparse, "relabundance")[1, tse_sparse$Fat == "Low"] <- 0
+    assay(tse_sparse, "relabundance")[1, ] <- NA_real_
 
     expect_warning(
         result <- getWilcoxon(tse_sparse,
