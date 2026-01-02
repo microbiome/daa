@@ -44,23 +44,26 @@ for each feature, comparing two groups.
 library(daa)
 library(mia)
 
-# Load example data
-data(GlobalPatterns)
-tse <- GlobalPatterns
+# Load example data (HintikkaXOData is used in unit tests)
+data(HintikkaXOData, package = "mia")
+tse <- MultiAssayExperiment::getWithColData(HintikkaXOData, "microbiota")
 
-# Subset to 2 groups and first 50 features for speed
-tse <- tse[1:50, tse$SampleType %in% c("Feces", "Skin")]
+# Standardize assay data
+tse <- transformAssay(tse, method = "relabundance")
 
-# Run Wilcoxon test
-res <- getWilcoxon(tse, assay.type = "counts", formula = x ~ SampleType)
+# Subset for demonstration
+tse <- tse[1:50, ]
+
+# Run Wilcoxon test comparing groups in 'Fat' metadata column
+res <- getWilcoxon(tse, assay.type = "relabundance", formula = ~Fat)
 head(res)
 ```
 
 Use `addWilcoxon()` to store results in `rowData()`:
 
 ```{r add_wilcoxon}
-tse <- addWilcoxon(tse, assay.type = "counts", formula = x ~ SampleType)
-head(rowData(tse)[, "wilcoxon_pvalue", drop = FALSE])
+tse <- addWilcoxon(tse, assay.type = "relabundance", formula = ~Fat)
+head(rowData(tse)[, "wilcoxon_padj", drop = FALSE])
 ```
 
 ## t-test
@@ -68,7 +71,21 @@ head(rowData(tse)[, "wilcoxon_pvalue", drop = FALSE])
 The `getTtest()` function performs t-tests (Welch's by default).
 
 ```{r ttest}
-res <- getTtest(tse, assay.type = "counts", formula = x ~ SampleType)
+res <- getTtest(tse, assay.type = "relabundance", formula = ~Fat)
+head(res)
+```
+
+## Testing metadata variables
+
+You can also test variables from `colData` or `rowData`. For example, testing
+alpha diversity indices:
+
+```{r metadata}
+# Add alpha diversity to colData
+tse <- mia::addAlpha(tse, index = "shannon_diversity")
+
+# Test diversity differences between groups
+res <- getWilcoxon(tse, col.var = "shannon_diversity", formula = ~Fat)
 head(res)
 ```
 

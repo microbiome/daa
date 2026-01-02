@@ -60,16 +60,19 @@ BiocManager::install("daa")
 
 ## Example
 
-```{r example, eval = FALSE}
+```{r example, message = FALSE}
 library(daa)
 library(mia)
-data(GlobalPatterns)
 
-# Subset to 2 groups
-tse <- GlobalPatterns[, GlobalPatterns$SampleType %in% c("Feces", "Skin")]
+# Load example data (HintikkaXOData is used in unit tests)
+data(HintikkaXOData, package = "mia")
+tse <- MultiAssayExperiment::getWithColData(HintikkaXOData, "microbiota")
 
-# Run Wilcoxon test
-res <- getWilcoxon(tse, assay.type = "counts", formula = x ~ SampleType)
+# Standardize assay data
+tse <- transformAssay(tse, method = "relabundance")
+
+# Run Wilcoxon test comparing groups in 'Fat' metadata column
+res <- getWilcoxon(tse, assay.type = "relabundance", formula = ~Fat)
 head(res)
 ```
 
