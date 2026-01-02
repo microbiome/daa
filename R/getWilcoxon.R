@@ -23,32 +23,32 @@
 #' @param x A \code{SummarizedExperiment} object.
 #'
 #' @param assay.type \code{Character scalar} or \code{NULL}. Specifies assay to
-#' test. Tests are run per feature. (Default: \code{NULL} )
+#' test. Tests are run per feature. (Default: \code{NULL})
 #'
 #' @param row.var \code{Character scalar} or \code{NULL}. Specifies variable
-#' from \code{rowData(x)} to test. (Default: \code{NULL} )
+#' from \code{rowData(x)} to test. (Default: \code{NULL})
 #'
 #' @param col.var \code{Character scalar} or \code{NULL}. Specifies variable
-#' from \code{colData(x)} to test. (Default: \code{NULL} )
+#' from \code{colData(x)} to test. (Default: \code{NULL})
 #'
 #' @param formula \code{formula}. A formula specifying the grouping variable,
 #' e.g., \code{~ SampleType}. The RHS specifies the comparison groups.
 #' For >2 levels, pairwise comparisons are performed.
 #'
 #' @param split.by \code{Character vector} or \code{NULL}. Columns to split by.
-#' Tests are run separately for each combination. (Default: \code{NULL} )
+#' Tests are run separately for each combination. (Default: \code{NULL})
 #'
 #' @param pair.by \code{Character scalar} or \code{NULL}. Column for pairing
-#' samples in paired tests. (Default: \code{NULL} )
+#' samples in paired tests. (Default: \code{NULL})
 #'
 #' @param features \code{Character vector} or \code{NULL}. Specific features
-#' to test when using \code{assay.type}. (Default: \code{NULL} )
+#' to test when using \code{assay.type}. (Default: \code{NULL})
 #'
 #' @param p.adjust.method \code{Character scalar}. Method for p-value
-#' adjustment. (Default: \code{"fdr"} )
+#' adjustment. (Default: \code{"fdr"})
 #'
 #' @param name \code{Character scalar}. Column name prefix for results.
-#' (Default: \code{"wilcoxon"} )
+#' (Default: \code{"wilcoxon"})
 #'
 #' @param ... Additional arguments passed to \code{rstatix::wilcox_test}.
 #'
@@ -75,7 +75,7 @@ NULL
 #' @export
 #' @importFrom SingleCellExperiment altExp
 #' @importFrom methods callNextMethod
-setMethod("getWilcoxon", "SingleCellExperiment", function(x, ...) {
+setMethod("getWilcoxon", "SingleCellExperiment", function (x, ... ){
     x <- .check_and_get_altExp(x, ...)
     res <- callNextMethod(x, ...)
     return(res)
@@ -88,9 +88,9 @@ setMethod("getWilcoxon", "SingleCellExperiment", function(x, ...) {
 #' @importFrom S4Vectors DataFrame
 setMethod(
     "getWilcoxon", "SummarizedExperiment",
-    function(x, assay.type = NULL, row.var = NULL, col.var = NULL,
+    function (x, assay.type = NULL, row.var = NULL, col.var = NULL,
              formula, split.by = NULL, pair.by = NULL, features = NULL,
-             p.adjust.method = "fdr", ...) {
+             p.adjust.method = "fdr", ... ){
         ############################# Input check ##############################
         group <- .check_input(
             x, assay.type, row.var, col.var, formula,
@@ -108,7 +108,7 @@ setMethod(
         paired <- !is.null(pair.by)
         res <- .run_wilcoxon(
             df, y, group, split.by, paired,
-            p.adjust.method, ...
+            p.adjust.method, features, ...
         )
         return(res)
     }
@@ -118,8 +118,8 @@ setMethod(
 #' @export
 setMethod(
     "addWilcoxon", "SummarizedExperiment",
-    function(x, name = "wilcoxon", ...) {
-        if (!.is_non_empty_string(name)) {
+    function (x, name = "wilcoxon", ... ){
+        if( !.is_non_empty_string(name) ){
             stop("'name' must be a single character value.", call. = FALSE)
         }
         res <- getWilcoxon(x, ...)
@@ -135,10 +135,10 @@ setMethod(
 ################################################################################
 
 #' @importFrom rstatix wilcox_test
-.run_wilcoxon <- function(df, y, group, split.by, paired, p.adjust.method, ...) {
+.run_wilcoxon <- function (df, y, group, split.by, paired, p.adjust.method, features = NULL, ... ){
     .calc_daa(
         df = df, y = y, group = group, split.by = split.by,
         paired = paired, FUN = rstatix::wilcox_test,
-        p.adjust.method = p.adjust.method, ...
+        p.adjust.method = p.adjust.method, features = features, ...
     )
 }
