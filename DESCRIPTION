@@ -15,17 +15,23 @@ BugReports: https://github.com/microbiome/daa/issues/
 biocViews: Software, Microbiome
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 Depends:
-    R (>= 4.5.0)
+    R (>= 4.5.0),
+    mia
 Imports:
-    dplyr
+    dplyr,
+    methods,
+    purrr,
+    rstatix,
+    S4Vectors,
+    SingleCellExperiment,
+    SummarizedExperiment
 Suggests:
     BiocStyle,
     knitr,
-    RefManageR,
+    MultiAssayExperiment,
     rmarkdown,
-    sessioninfo,
     testthat
 Config/testthat/edition: 3
 VignetteBuilder: knitr
