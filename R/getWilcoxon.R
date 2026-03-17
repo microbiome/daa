@@ -120,7 +120,7 @@ setMethod(
 setMethod(
     "addWilcoxon", "SummarizedExperiment",
     function(x, name = "wilcoxon", ...) {
-        if( !.is_non_empty_string(name)) {
+        if (!.is_non_empty_string(name)) {
             stop("'name' must be a single character value.", call. = FALSE)
         }
         res <- getWilcoxon(x, ...)
