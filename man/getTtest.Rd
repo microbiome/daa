@@ -68,7 +68,8 @@ adjustment. (Default: \code{"fdr"})}
 }
 \value{
 \code{getTtest} returns a \code{DataFrame} with test results.
-\code{addTtest} returns \code{x} with results added to \code{rowData(x)}.
+\code{addTtest} returns \code{x} with results added to
+\code{metadata(x)}.
 }
 \description{
 These functions perform t-test to compare values between two groups.
