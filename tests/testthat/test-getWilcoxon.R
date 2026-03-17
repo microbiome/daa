@@ -1,11 +1,21 @@
 # Tests for getWilcoxon
 
-# Use HintikkaXOData - has good variance for statistical tests
-data(HintikkaXOData, package = "mia")
-mae <- HintikkaXOData
-tse <- MultiAssayExperiment::getWithColData(mae, "microbiota")
+# Use GlobalPatterns - stable data for statistical tests
+data(GlobalPatterns, package = "mia")
+tse <- GlobalPatterns
 tse <- mia::transformAssay(tse, method = "relabundance")
-tse <- tse[1:10, ]
+tse <- tse[, tse$SampleType %in% c("Feces", "Skin")]
+grp <- as.character(tse$SampleType)
+levels_grp <- unique(grp)
+assay_mat <- SummarizedExperiment::assay(tse, "relabundance")
+keep_feat <- apply(assay_mat, 1, function(v) {
+    a <- v[grp == levels_grp[1]]
+    b <- v[grp == levels_grp[2]]
+    sum(!is.na(a)) >= 2 && sum(!is.na(b)) >= 2 &&
+        stats::var(a, na.rm = TRUE) > 0 && stats::var(b, na.rm = TRUE) > 0
+})
+tse <- tse[which(keep_feat)[1:10], ]
+tse$numeric_col <- as.numeric(seq_len(ncol(tse)))
 
 ################################################################################
 # assay.type tests (per-feature)
@@ -14,7 +24,7 @@ tse <- tse[1:10, ]
 test_that("getWilcoxon with assay.type returns DataFrame", {
     result <- getWilcoxon(tse,
         assay.type = "relabundance",
-        formula = ~Fat
+        formula = ~SampleType
     )
 
     expect_s4_class(result, "DataFrame")
@@ -25,7 +35,7 @@ test_that("getWilcoxon with assay.type returns DataFrame", {
 test_that("getWilcoxon with assay.type returns one row per feature", {
     result <- getWilcoxon(tse,
         assay.type = "relabundance",
-        formula = ~Fat
+        formula = ~SampleType
     )
     expect_equal(nrow(result), nrow(tse))
 })
@@ -34,7 +44,7 @@ test_that("getWilcoxon respects features argument", {
     feat_subset <- rownames(tse)[1:5]
     result <- getWilcoxon(tse,
         assay.type = "relabundance",
-        formula = ~Fat, features = feat_subset
+        formula = ~SampleType, features = feat_subset
     )
     expect_equal(nrow(result), 5)
 })
@@ -44,10 +54,9 @@ test_that("getWilcoxon respects features argument", {
 ################################################################################
 
 test_that("getWilcoxon with col.var works", {
-    tse_alpha <- mia::addAlpha(tse, index = "shannon_diversity")
-    result <- getWilcoxon(tse_alpha,
-        col.var = "shannon_diversity",
-        formula = ~Fat
+    result <- getWilcoxon(tse,
+        col.var = "numeric_col",
+        formula = ~SampleType
     )
 
     expect_s4_class(result, "DataFrame")
@@ -58,27 +67,25 @@ test_that("getWilcoxon with col.var works", {
 # Robustness tests
 ################################################################################
 
-test_that("getWilcoxon handles sparse data with warnings", {
+test_that("getWilcoxon fails for invalid sparse data", {
     # Create a feature with all NAs to trigger error
     tse_sparse <- tse
     assay(tse_sparse, "relabundance")[1, ] <- NA_real_
 
-    expect_warning(
-        result <- getWilcoxon(tse_sparse,
+    expect_error(
+        getWilcoxon(tse_sparse,
             assay.type = "relabundance",
-            formula = ~Fat
-        ),
-        "failed"
+            formula = ~SampleType
+        )
     )
-    expect_true(any(is.na(result$p)))
-    expect_true("warning" %in% colnames(result))
 })
 
 test_that("getWilcoxon works with un-sorted paired data", {
     # Create paired data and shuffle it
-    tse_paired <- tse[, 1:10]
-    tse_paired$Subject <- rep(1:5, each = 2)
-    tse_paired$Time <- rep(c("T1", "T2"), 5)
+    n <- floor(ncol(tse) / 2) * 2
+    tse_paired <- tse[, seq_len(n)]
+    tse_paired$Subject <- rep(seq_len(n / 2), each = 2)
+    tse_paired$Time <- rep(c("T1", "T2"), n / 2)
 
     # Shuffle
     idx <- sample(ncol(tse_paired))
@@ -99,7 +106,7 @@ test_that("getWilcoxon works with un-sorted paired data", {
 ################################################################################
 
 test_that("getWilcoxon fails without data source", {
-    expect_error(getWilcoxon(tse, formula = ~Fat), "either")
+    expect_error(getWilcoxon(tse, formula = ~SampleType), "either")
 })
 
 test_that("getWilcoxon fails with invalid formula", {
@@ -112,7 +119,7 @@ test_that("getWilcoxon fails with invalid formula", {
 test_that("getWilcoxon p.adjust.method parameter works", {
     result <- getWilcoxon(tse,
         assay.type = "relabundance",
-        formula = ~Fat, p.adjust.method = "bonferroni"
+        formula = ~SampleType, p.adjust.method = "bonferroni"
     )
     expect_true("p.adj" %in% names(result))
 })
@@ -121,10 +128,11 @@ test_that("getWilcoxon p.adjust.method parameter works", {
 # addWilcoxon tests
 ################################################################################
 
-test_that("addWilcoxon adds p.adj to rowData", {
+test_that("addWilcoxon stores results in metadata", {
     result <- addWilcoxon(tse,
         assay.type = "relabundance",
-        formula = ~Fat
+        formula = ~SampleType
     )
-    expect_true("wilcoxon_padj" %in% colnames(rowData(result)))
+    expect_true("wilcoxon" %in% names(S4Vectors::metadata(result)))
+    expect_s4_class(S4Vectors::metadata(result)$wilcoxon, "DataFrame")
 })

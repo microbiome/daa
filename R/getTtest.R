@@ -16,7 +16,8 @@
 #'
 #' @return
 #' \code{getTtest} returns a \code{DataFrame} with test results.
-#' \code{addTtest} returns \code{x} with results added to \code{rowData(x)}.
+#' \code{addTtest} returns \code{x} with results added to
+#' \code{metadata(x)}.
 #'
 #' @param x A \code{SummarizedExperiment} object.
 #'
@@ -127,9 +128,7 @@ setMethod(
             stop("'name' must be a single character value.", call. = FALSE)
         }
         res <- getTtest(x, ...)
-        x <- .add_values_to_colData(x, list(res$p.adj), paste0(name, "_padj"),
-            MARGIN = 1
-        )
+        S4Vectors::metadata(x)[[name]] <- res
         return(x)
     }
 )

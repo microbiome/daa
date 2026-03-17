@@ -7,7 +7,6 @@
 .is_non_empty_character <- mia:::.is_non_empty_character
 .check_assay_present <- mia:::.check_assay_present
 .check_and_get_altExp <- mia:::.check_and_get_altExp
-.add_values_to_colData <- mia:::.add_values_to_colData
 
 ################################################################################
 # Helper function for metadata variable validation
@@ -24,8 +23,8 @@
         # It must be a string and found from colData/rowData
         is_string <- ifelse(multiple, is.character(var), .is_non_empty_string(var))
         check_values <- c()
-        check_values <- c(check_values, if( col) colnames(colData(tse)))
-        check_values <- c(check_values, if( row) colnames(rowData(tse)))
+        check_values <- c(check_values, if(col) colnames(colData(tse)))
+        check_values <- c(check_values, if(row) colnames(rowData(tse)))
         var_found <- all(var %in% check_values)
         if( !(is_string && var_found)) {
             stop("'", var.name, "' must be ", ifelse(multiple, "", "a single "),
@@ -39,7 +38,7 @@
 }
 
 .get_name_in_parent <- function(var) {
-    deparse(substitute(var))
+    return(deparse(substitute(var)))
 }
 
 #' Check inputs for statistical tests
@@ -113,7 +112,7 @@
         .check_metadata_var(x, pair.by, assay.type, row.var, col.var)
     }
     # Return group for use in caller
-    group
+    return(group)
 }
 
 #' Check metadata variable exists in appropriate location
@@ -144,7 +143,7 @@
     if( length(rhs) != 1 || rhs == "") {
         stop("Formula must specify a grouping variable.", call. = FALSE)
     }
-    rhs
+    return(rhs)
 }
 
 #' Check group has at least 2 levels
@@ -204,13 +203,17 @@
     attr(df, "pair.by") <- pair.by
     .check_group(df, group)
 
+    if( is.factor(df[[group]])) {
+        df[[group]] <- droplevels(df[[group]])
+    }
+
     # Validate dependent variable is numeric
     y_var <- if( !is.null(assay.type)) assay.type else if( !is.null(row.var)) row.var else col.var
     if( !is.numeric(df[[y_var]])) {
         stop("The dependent variable must be numeric.", call. = FALSE)
     }
 
-    df
+    return(df)
 }
 
 
@@ -219,8 +222,7 @@
 #' @noRd
 #' @importFrom rstatix adjust_pvalue
 #' @importFrom S4Vectors DataFrame
-#' @importFrom dplyr across all_of group_split arrange
-#' @importFrom purrr map_df
+#' @importFrom dplyr across all_of arrange group_by
 #' @importFrom stats as.formula
 .calc_daa <- function(df, y, group, split.by, paired, FUN,
                       p.adjust.method = "fdr", features = NULL, ...) {
@@ -236,80 +238,25 @@
     # Build formula: y ~ group
     formula <- as.formula(paste0(y, " ~ ", group))
 
-    # Run tests per group (FeatureID + split.by)
+    # Run tests (optionally grouped by FeatureID + split.by)
     if( length(grouping_vars) > 0) {
-        res <- df |>
-            group_split(across(all_of(grouping_vars))) |>
-            map_df(function(sub_df) {
-                # Ensure correct alignment for paired tests
-                if( paired && !is.null(pair.by)) {
-                    sub_df <- sub_df |> arrange(across(all_of(pair.by)))
-                }
-
-                # Run test with error handling
-                test_res <- tryCatch(
-                    {
-                        FUN(sub_df, formula, paired = paired, ...)
-                    },
-                    error = function(e) {
-                        # Print warning to terminal
-                        msg <- conditionMessage(e)
-                        warning("Statistical test failed for a feature: ", msg,
-                            call. = FALSE
-                        )
-                        # Create empty/NA result with error message
-                        out <- data.frame(
-                            .y. = y,
-                            group1 = NA_character_,
-                            group2 = NA_character_,
-                            n1 = NA_integer_,
-                            n2 = NA_integer_,
-                            statistic = NA_real_,
-                            p = NA_real_,
-                            warning = msg
-                        )
-                        return(out)
-                    }
-                )
-
-                # Attach grouping info
-                group_info <- sub_df[1, grouping_vars, drop = FALSE]
-                res_with_groups <- cbind(test_res, group_info)
-                return(res_with_groups)
-            })
+        df <- df |> group_by(across(all_of(grouping_vars)))
     } else {
-        # Single test (no FeatureID/split.by)
-        if( paired && !is.null(pair.by)) {
-            df <- df |> arrange(across(all_of(pair.by)))
-        }
-
-        res <- tryCatch(
-            {
-                FUN(df, formula, paired = paired, ...)
-            },
-            error = function(e) {
-                msg <- conditionMessage(e)
-                warning("Statistical test failed: ", msg, call. = FALSE)
-                out <- data.frame(
-                    .y. = y,
-                    group1 = NA_character_,
-                    group2 = NA_character_,
-                    n1 = NA_integer_,
-                    n2 = NA_integer_,
-                    statistic = NA_real_,
-                    p = NA_real_,
-                    warning = msg
-                )
-                return(out)
-            }
-        )
+        # Keep as plain data.frame for single test (no FeatureID/split.by)
+        df <- df
     }
+
+    # Ensure stable ordering for paired tests before calling the test function
+    if( paired && !is.null(pair.by)) {
+        arrange_vars <- c(grouping_vars, pair.by)
+        df <- df |> arrange(across(all_of(arrange_vars)))
+    }
+
+    res <- FUN(df, formula, paired = paired, ...)
 
     # P-value adjustment
     if( "p" %in% colnames(res) && any(!is.na(res$p))) {
         res <- res |> adjust_pvalue(method = p.adjust.method)
-    } else {
-        res$p.adj <- NA_real_
     }
 
     # Subset to relevant features AFTER statistical calculations
