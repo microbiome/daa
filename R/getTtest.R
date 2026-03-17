@@ -77,7 +77,7 @@ NULL
 #' @export
 #' @importFrom SingleCellExperiment altExp
 #' @importFrom methods callNextMethod
-setMethod("getTtest", "SingleCellExperiment", function (x, ... ){
+setMethod("getTtest", "SingleCellExperiment", function(x, ...) {
     x <- .check_and_get_altExp(x, ...)
     res <- callNextMethod(x, ...)
     return(res)
@@ -90,15 +90,15 @@ setMethod("getTtest", "SingleCellExperiment", function (x, ... ){
 #' @importFrom S4Vectors DataFrame
 setMethod(
     "getTtest", "SummarizedExperiment",
-    function (x, assay.type = NULL, row.var = NULL, col.var = NULL,
+    function(x, assay.type = NULL, row.var = NULL, col.var = NULL,
              formula, split.by = NULL, pair.by = NULL, features = NULL,
-             var.equal = FALSE, p.adjust.method = "fdr", ... ){
+             var.equal = FALSE, p.adjust.method = "fdr", ...) {
         ############################# Input check ##############################
         group <- .check_input(
             x, assay.type, row.var, col.var, formula,
             split.by, pair.by, features
         )
-        if( !.is_a_bool(var.equal) ){
+        if (!.is_a_bool(var.equal)) {
             stop("'var.equal' must be TRUE or FALSE.", call. = FALSE)
         }
         ########################### Input check end ############################
@@ -123,8 +123,8 @@ setMethod(
 #' @export
 setMethod(
     "addTtest", "SummarizedExperiment",
-    function (x, name = "ttest", ... ){
-        if( !.is_non_empty_string(name) ){
+    function(x, name = "ttest", ...) {
+        if (!.is_non_empty_string(name)) {
             stop("'name' must be a single character value.", call. = FALSE)
         }
         res <- getTtest(x, ...)
@@ -138,8 +138,8 @@ setMethod(
 ################################################################################
 
 #' @importFrom rstatix t_test
-.run_ttest <- function (df, y, group, split.by, paired, var.equal,
-                       p.adjust.method, features = NULL, ... ){
+.run_ttest <- function(df, y, group, split.by, paired, var.equal,
+                       p.adjust.method, features = NULL, ...) {
     .calc_daa(
         df = df, y = y, group = group, split.by = split.by,
         paired = paired, FUN = rstatix::t_test,

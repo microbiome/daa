@@ -64,7 +64,8 @@ adjustment. (Default: \code{"fdr"})}
 }
 \value{
 \code{getWilcoxon} returns a \code{DataFrame} with test results.
-\code{addWilcoxon} returns \code{x} with results added to \code{rowData(x)}.
+\code{addWilcoxon} returns \code{x} with results added to
+\code{metadata(x)}.
 }
 \description{
 These functions perform Wilcoxon rank-sum test (Mann-Whitney U) to compare
