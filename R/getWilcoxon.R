@@ -18,7 +18,8 @@
 #'
 #' @return
 #' \code{getWilcoxon} returns a \code{DataFrame} with test results.
-#' \code{addWilcoxon} returns \code{x} with results added to \code{rowData(x)}.
+#' \code{addWilcoxon} returns \code{x} with results added to
+#' \code{metadata(x)}.
 #'
 #' @param x A \code{SummarizedExperiment} object.
 #'
@@ -123,9 +124,7 @@ setMethod(
             stop("'name' must be a single character value.", call. = FALSE)
         }
         res <- getWilcoxon(x, ...)
-        x <- .add_values_to_colData(x, list(res$p.adj), paste0(name, "_padj"),
-            MARGIN = 1
-        )
+        S4Vectors::metadata(x)[[name]] <- res
         return(x)
     }
 )

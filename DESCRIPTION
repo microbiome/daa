@@ -22,7 +22,6 @@ Depends:
 Imports:
     dplyr,
     methods,
-    purrr,
     rstatix,
     S4Vectors,
     SingleCellExperiment,
@@ -30,7 +29,6 @@ Imports:
 Suggests:
     BiocStyle,
     knitr,
-    MultiAssayExperiment,
     rmarkdown,
     testthat
 Config/testthat/edition: 3

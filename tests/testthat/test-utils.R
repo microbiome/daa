@@ -1,12 +1,11 @@
 # Tests for utils.R functions
 
-# Use HintikkaXOData for reliable tests
-# Need getWithColData to get colData from MAE
-data(HintikkaXOData, package = "mia")
-mae <- HintikkaXOData
-tse <- MultiAssayExperiment::getWithColData(mae, "microbiota")
+# Use GlobalPatterns for reliable tests
+data(GlobalPatterns, package = "mia")
+tse <- GlobalPatterns
 tse <- mia::transformAssay(tse, method = "relabundance")
-tse <- tse[1:10, ]
+tse <- tse[1:10, tse$SampleType %in% c("Feces", "Skin")]
+tse$numeric_col <- as.numeric(seq_len(ncol(tse)))
 
 ################################################################################
 # .check_input tests
@@ -14,12 +13,12 @@ tse <- tse[1:10, ]
 
 test_that(".check_input requires exactly one data source", {
     expect_error(
-        .check_input(tse, NULL, NULL, NULL, ~Fat, NULL, NULL, NULL),
+        .check_input(tse, NULL, NULL, NULL, ~SampleType, NULL, NULL, NULL),
         "either"
     )
     expect_error(
         .check_input(
-            tse, "relabundance", "var", NULL, ~Fat,
+            tse, "relabundance", "var", NULL, ~SampleType,
             NULL, NULL, NULL
         ),
         "either"
@@ -28,7 +27,7 @@ test_that(".check_input requires exactly one data source", {
 
 test_that(".check_input validates features only with assay.type", {
     expect_error(
-        .check_input(tse, NULL, NULL, "Fat", ~Fat, NULL, NULL,
+        .check_input(tse, NULL, NULL, "SampleType", ~SampleType, NULL, NULL,
             features = "Taxa1"
         ),
         "features"
@@ -37,7 +36,7 @@ test_that(".check_input validates features only with assay.type", {
 
 test_that(".check_input validates features exist", {
     expect_error(
-        .check_input(tse, "relabundance", NULL, NULL, ~Fat, NULL, NULL,
+        .check_input(tse, "relabundance", NULL, NULL, ~SampleType, NULL, NULL,
             features = c("nonexistent")
         ),
         "features"
@@ -67,7 +66,7 @@ test_that(".check_input validates formula variable exists", {
 test_that(".check_input validates split.by exists", {
     expect_error(
         .check_input(
-            tse, "relabundance", NULL, NULL, ~Fat,
+            tse, "relabundance", NULL, NULL, ~SampleType,
             "nonexistent", NULL, NULL
         ),
         "must be a single character value from the following options"
@@ -77,7 +76,7 @@ test_that(".check_input validates split.by exists", {
 test_that(".check_input validates pair.by exists", {
     expect_error(
         .check_input(
-            tse, "relabundance", NULL, NULL, ~Fat, NULL,
+            tse, "relabundance", NULL, NULL, ~SampleType, NULL,
             "nonexistent", NULL
         ),
         "must be a single character value from the following options"
@@ -87,7 +86,7 @@ test_that(".check_input validates pair.by exists", {
 test_that(".check_input passes with valid inputs", {
     expect_silent(
         .check_input(
-            tse, "relabundance", NULL, NULL, ~Fat,
+            tse, "relabundance", NULL, NULL, ~SampleType,
             NULL, NULL, NULL
         )
     )
@@ -98,8 +97,8 @@ test_that(".check_input passes with valid inputs", {
 ################################################################################
 
 test_that(".get_rhs_var extracts group from formula", {
-    result <- .get_rhs_var(~Fat)
-    expect_equal(result, "Fat")
+    result <- .get_rhs_var(~SampleType)
+    expect_equal(result, "SampleType")
 })
 
 test_that(".get_rhs_var fails with non-formula", {
@@ -126,24 +125,23 @@ test_that(".check_group passes with valid 2-level group", {
 
 test_that(".get_data with assay.type returns correct format", {
     df <- .get_data(
-        tse, "relabundance", NULL, NULL, "Fat",
+        tse, "relabundance", NULL, NULL, "SampleType",
         NULL, NULL, NULL
     )
 
     expect_s3_class(df, "data.frame")
     expect_true("relabundance" %in% names(df))
-    expect_true("Fat" %in% names(df))
+    expect_true("SampleType" %in% names(df))
     expect_true("FeatureID" %in% names(df))
 })
 
 test_that(".get_data with col.var returns correct format", {
-    tse_alpha <- mia::addAlpha(tse, index = "shannon_diversity")
     df <- .get_data(
-        tse_alpha, NULL, NULL, "shannon_diversity",
-        "Fat", NULL, NULL, NULL
+        tse, NULL, NULL, "numeric_col",
+        "SampleType", NULL, NULL, NULL
     )
 
     expect_s3_class(df, "data.frame")
-    expect_true("shannon_diversity" %in% names(df))
-    expect_true("Fat" %in% names(df))
+    expect_true("numeric_col" %in% names(df))
+    expect_true("SampleType" %in% names(df))
 })
