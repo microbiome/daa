@@ -83,13 +83,21 @@ to define the values to test.
 data(GlobalPatterns, package = "mia")
 tse <- GlobalPatterns
 tse <- tse[1:50, tse$SampleType \%in\% c("Feces", "Skin")]
+grp <- as.character(tse$SampleType)
+assay_mat <- SummarizedExperiment::assay(tse, "counts")
+keep <- apply(assay_mat, 1, function(v) {
+  a <- v[grp == "Feces"]
+  b <- v[grp == "Skin"]
+  !(stats::var(a, na.rm = TRUE) == 0 && stats::var(b, na.rm = TRUE) == 0)
+})
+tse <- tse[keep, ]
 
 # Test assay values (per feature)
 res <- getWilcoxon(tse, assay.type = "counts", formula = ~SampleType)
 
 # Test colData variable (e.g., alpha diversity)
-tse <- mia::addAlpha(tse, index = "shannon_diversity")
-res <- getWilcoxon(tse, col.var = "shannon_diversity", formula = ~SampleType)
+tse$numeric_col <- as.numeric(seq_len(ncol(tse)))
+res <- getWilcoxon(tse, col.var = "numeric_col", formula = ~SampleType)
 
 }
 \seealso{
