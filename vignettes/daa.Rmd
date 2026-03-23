@@ -54,16 +54,28 @@ tse <- transformAssay(tse, method = "relabundance")
 # Subset for demonstration
 tse <- tse[1:50, ]
 
+# Remove degenerate features that are constant in both comparison groups.
+# With strict error propagation, these invalid per-feature tests now fail fast.
+fat <- as.character(colData(tse)$Fat)
+assay_mat <- assay(tse, "relabundance")
+keep <- apply(assay_mat, 1, function(v) {
+  high <- v[fat == "High"]
+  low <- v[fat == "Low"]
+  any(!is.na(high)) && any(!is.na(low)) &&
+    !(stats::var(high, na.rm = TRUE) == 0 && stats::var(low, na.rm = TRUE) == 0)
+})
+tse <- tse[keep, ]
+
 # Run Wilcoxon test comparing groups in 'Fat' metadata column
 res <- getWilcoxon(tse, assay.type = "relabundance", formula = ~Fat)
 head(res)
 ```
 
-Use `addWilcoxon()` to store results in `rowData()`:
+Use `addWilcoxon()` to store results in `metadata()`:
 
 ```{r add_wilcoxon}
 tse <- addWilcoxon(tse, assay.type = "relabundance", formula = ~Fat)
-head(rowData(tse)[, "wilcoxon_padj", drop = FALSE])
+head(S4Vectors::metadata(tse)$wilcoxon)
 ```
 
 ## t-test
