@@ -1,269 +1,373 @@
-################################################################################
-# Internal methods imported from mia
-################################################################################
-
-.is_a_bool <- mia:::.is_a_bool
-.is_non_empty_string <- mia:::.is_non_empty_string
-.is_non_empty_character <- mia:::.is_non_empty_character
-.check_assay_present <- mia:::.check_assay_present
-.check_and_get_altExp <- mia:::.check_and_get_altExp
+#' @importFrom rlang .data
+NULL
 
 ################################################################################
-# Helper function for metadata variable validation
+# Formula helpers
 ################################################################################
 
-# This function checks whether variable can be found from colData or rowData.
-.check_metadata_variable <- function(tse, var, row = FALSE, col = FALSE, multiple = FALSE,
-                                     var.name = .get_name_in_parent(var)) {
-    if (!.is_a_bool(multiple)) {
-        stop("'multiple' must be TRUE or FALSE.", call. = FALSE)
-    }
-    # If the variable is not NULL
-    if (!is.null(var)) {
-        # It must be a string and found from colData/rowData
-        is_string <- ifelse(multiple, is.character(var), .is_non_empty_string(var))
-        check_values <- c()
-        check_values <- c(check_values, if (col) colnames(colData(tse)))
-        check_values <- c(check_values, if (row) colnames(rowData(tse)))
-        var_found <- all(var %in% check_values)
-        if (!(is_string && var_found)) {
-            stop("'", var.name, "' must be ", ifelse(multiple, "", "a single "),
-                "character value from the following options: '",
-                paste0(check_values, collapse = "', '"), "'",
-                call. = FALSE
-            )
-        }
-    }
-    return(NULL)
-}
-
-.get_name_in_parent <- function(var) {
-    return(deparse(substitute(var)))
-}
-
-#' Check inputs for statistical tests
 #' @keywords internal
 #' @noRd
-#' @importFrom SummarizedExperiment colData rowData
-.check_input <- function(x, assay.type, row.var, col.var, formula,
-                         split.by, pair.by, features) {
-    # Either assay.type, row.var or col.var must be specified
-    if (sum(c(is.null(assay.type), is.null(row.var), is.null(col.var))) != 2L) {
-        stop("Please specify either 'assay.type', 'row.var', or 'col.var'.",
-            call. = FALSE
-        )
-    }
-    # features cannot be specified if row.var or col.var is specified
-    if (is.null(assay.type) && !is.null(features)) {
-        stop("'features' can only be specified when 'assay.type' is specified.",
-            call. = FALSE
-        )
-    }
-    # As features points to rownames, the TSE must have rownames
-    if (!is.null(features) && is.null(rownames(x))) {
-        stop("'x' must have rownames.", call. = FALSE)
-    }
-    if (!(is.null(features) ||
-        (is.character(features) && all(features %in% rownames(x))))) {
-        stop("'features' must be NULL or character vector specifying rownames.",
-            call. = FALSE
-        )
-    }
-    # If assay was specified, check that it is correct
-    if (!is.null(assay.type)) {
-        .check_assay_present(assay.type, x)
-    }
-    # Check row.var exists in rowData
-    if (!is.null(row.var)) {
-        if (!.is_non_empty_string(row.var)) {
-            stop("'row.var' must be a single character value.", call. = FALSE)
-        }
-        if (!row.var %in% colnames(rowData(x))) {
-            stop("'", row.var, "' not found in rowData(x).", call. = FALSE)
-        }
-    }
-    # Check col.var exists in colData
-    if (!is.null(col.var)) {
-        if (!.is_non_empty_string(col.var)) {
-            stop("'col.var' must be a single character value.", call. = FALSE)
-        }
-        if (!col.var %in% colnames(colData(x))) {
-            stop("'", col.var, "' not found in colData(x).", call. = FALSE)
-        }
-    }
-    # Check formula
-    group <- .get_rhs_var(formula)
-    # Check group variable exists in appropriate metadata
-    .check_metadata_var(x, group, assay.type, row.var, col.var)
-    # Check split.by variables
-    if (!is.null(split.by)) {
-        if (!is.character(split.by)) {
-            stop("'split.by' must be a character vector.", call. = FALSE)
-        }
-        for (var in split.by) {
-            .check_metadata_var(x, var, assay.type, row.var, col.var)
-        }
-    }
-    # Check pair.by variable
-    if (!is.null(pair.by)) {
-        if (!.is_non_empty_string(pair.by)) {
-            stop("'pair.by' must be a single character value.", call. = FALSE)
-        }
-        .check_metadata_var(x, pair.by, assay.type, row.var, col.var)
-    }
-    # Return group for use in caller
-    return(group)
+.get_lhs <- function(formula) {
+    all_vars <- all.vars(formula)
+    lhs <- all_vars[[1L]]
+    return(lhs)
 }
 
-#' Check metadata variable exists in appropriate location
 #' @keywords internal
 #' @noRd
-#' @importFrom SummarizedExperiment colData rowData
-.check_metadata_var <- function(x, var, assay.type, row.var, col.var) {
-    # When row.var is used, check rowData
-    # When assay.type or col.var is used, check colData
-    .check_metadata_variable(
-        tse = x,
-        var = var,
-        row = !is.null(row.var),
-        col = !is.null(assay.type) || !is.null(col.var)
-    )
-    invisible(NULL)
-}
-
-#' Extract RHS variable from formula
-#' @keywords internal
-#' @noRd
-.get_rhs_var <- function(formula) {
-    if (!inherits(formula, "formula")) {
-        stop("'formula' must be a formula.", call. = FALSE)
-    }
-    # Get RHS of formula (handles both ~ group and value ~ group)
-    rhs <- as.character(formula)[length(as.character(formula))]
-    if (length(rhs) != 1 || rhs == "") {
-        stop("Formula must specify a grouping variable.", call. = FALSE)
-    }
+.get_rhs <- function(formula) {
+    all_vars <- all.vars(formula)
+    rhs <- all_vars[-1L]
     return(rhs)
 }
 
-#' Check group has at least 2 levels
 #' @keywords internal
 #' @noRd
-.check_group <- function(df, group) {
-    if (!group %in% names(df)) {
-        stop("'", group, "' not found in data.", call. = FALSE)
+.get_rhs_formula <- function(formula) {
+    rhs_formula <- stats::terms(formula) |>
+        stats::delete.response() |>
+        stats::as.formula()
+    return(rhs_formula)
+}
+
+################################################################################
+# Long-format data helpers
+################################################################################
+
+#' Get long-format data from TSE based on formula
+#'
+#' Auto-detects whether the LHS of the formula is an assay, colData, or
+#' rowData variable and returns a long-format data.frame.
+#'
+#' @keywords internal
+#' @noRd
+#' @importFrom SummarizedExperiment assayNames colData rowData assay
+.get_long_data <- function(tse, formula, pair.by = NULL) {
+    lhs <- .get_lhs(formula)
+
+    is_assay <- lhs %in% SummarizedExperiment::assayNames(tse)
+    is_coldata <- lhs %in% colnames(SummarizedExperiment::colData(tse))
+    is_rowdata <- lhs %in% colnames(SummarizedExperiment::rowData(tse))
+
+    if (is_assay) {
+        df <- .merge_tse(tse, lhs)
+    } else {
+        FUN <- if (is_coldata) {
+            SummarizedExperiment::colData
+        } else if (is_rowdata) {
+            SummarizedExperiment::rowData
+        } else {
+            stop(
+                "'", lhs, "' not found in assayNames, colData, or rowData.",
+                call. = FALSE
+            )
+        }
+        df <- tse |> FUN()
+        df <- as.data.frame(df)
+        df[["colnames"]] <- rownames(df)
+        df[["rownames"]] <- lhs
     }
-    vals <- unique(df[[group]])
-    vals <- vals[!is.na(vals)]
-    if (length(vals) < 2) {
-        stop("'group' must have at least 2 levels. Found ", length(vals), ".",
+
+    if (!is.numeric(df[[lhs]])) {
+        stop("The dependent variable must be numeric.", call. = FALSE)
+    }
+
+    rhs <- .get_rhs(formula)
+    all_vars <- c(lhs, rhs, pair.by)
+
+    if (!all(all_vars %in% colnames(df))) {
+        missing <- setdiff(all_vars, colnames(df))
+        stop(
+            "Variable(s) not found in the data: ",
+            paste0("'", missing, "'", collapse = ", "),
             call. = FALSE
         )
     }
-    invisible(NULL)
+
+    df <- df[, c(all_vars, "colnames", "rownames"), drop = FALSE] |>
+        as.data.frame()
+    return(df)
 }
 
-#' Get data for testing based on source
+#' Melt a TSE assay into long format and join with row/col metadata
+#'
 #' @keywords internal
 #' @noRd
-#' @importFrom SummarizedExperiment colData rowData
-#' @importFrom mia meltSE
-.get_data <- function(x, assay.type, row.var, col.var,
-                      group, split.by, pair.by, features) {
-    # Collect all variable names needed
-    all_vars <- c(group, split.by, pair.by)
-    all_vars <- unique(all_vars[!sapply(all_vars, is.null)])
+#' @importFrom SummarizedExperiment rowData colData assay
+#' @importFrom tidyr pivot_longer
+#' @importFrom dplyr left_join
+.merge_tse <- function(tse, assay.type) {
+    rd <- tse |> SummarizedExperiment::rowData()
+    cd <- tse |> SummarizedExperiment::colData()
+    mat <- tse |> SummarizedExperiment::assay(assay.type)
 
-    # Get data based on source
-    if (!is.null(assay.type)) {
-        # Automatically detect which variables are in rowData vs colData
-        row_vars <- vapply(all_vars, function(v) {
-            v %in% colnames(rowData(x))
-        }, logical(1L))
-        col_vars <- all_vars[!row_vars]
-        row_vars <- all_vars[row_vars]
-        # Use meltSE with smart routing
-        df <- meltSE(
-            x,
-            assay.type = assay.type,
-            add.col = c(col.var, pair.by, col_vars),
-            add.row = c(row.var, row_vars)
-        )
-    }
-    # If row.var was specified, get the data from rowData
-    if (!is.null(row.var)) {
-        df <- rowData(x)[, c(row.var, all_vars), drop = FALSE]
-    }
-    # If col.var was specified, get the data from colData
-    if (!is.null(col.var)) {
-        df <- colData(x)[, c(col.var, pair.by, all_vars), drop = FALSE]
-    }
+    mat <- mat |> as.data.frame()
+    mat[["rownames"]] <- rownames(mat)
 
-    df <- as.data.frame(df)
-    attr(df, "pair.by") <- pair.by
-    .check_group(df, group)
+    mat <- tidyr::pivot_longer(
+        mat,
+        cols = -"rownames",
+        names_to = "colnames",
+        values_to = assay.type
+    )
 
-    if (is.factor(df[[group]])) {
-        df[[group]] <- droplevels(df[[group]])
-    }
+    rd <- rd |> as.data.frame()
+    rd[["rownames"]] <- rownames(rd)
 
-    # Validate dependent variable is numeric
-    y_var <- if (!is.null(assay.type)) assay.type else if (!is.null(row.var)) row.var else col.var
-    if (!is.numeric(df[[y_var]])) {
-        stop("The dependent variable must be numeric.", call. = FALSE)
-    }
+    cd <- cd |> as.data.frame()
+    cd[["colnames"]] <- rownames(cd)
+
+    df <- mat |>
+        dplyr::left_join(rd, by = "rownames") |>
+        dplyr::left_join(cd, by = "colnames")
 
     return(df)
 }
 
+################################################################################
+# Rstatix calculator
+################################################################################
 
-#' daa dispatcher
+#' Run a rstatix test function on long-format data
+#'
+#' Groups by feature (rownames), filters low-variance features, then runs the
+#' test per feature.
+#'
 #' @keywords internal
 #' @noRd
-#' @importFrom rstatix adjust_pvalue
-#' @importFrom S4Vectors DataFrame
-#' @importFrom dplyr across all_of arrange group_by
-#' @importFrom stats as.formula
-.calc_daa <- function(df, y, group, split.by, paired, FUN,
-                      p.adjust.method = "fdr", features = NULL, ...) {
-    # Identify pairing variable
-    pair.by <- attr(df, "pair.by")
+#' @importFrom rlang sym !!
+#' @importFrom dplyr group_by filter ungroup n_distinct arrange
+.calculate_rstatix <- function(df, formula, FUN, pair.by = NULL, ...) {
+    lhs <- .get_lhs(formula) |> rlang::sym()
+    rhs <- .get_rhs(formula) |> rlang::sym()
 
-    # Combine grouping vars: FeatureID (from meltSE) + split.by
-    grouping_vars <- c(split.by)
-    if ("FeatureID" %in% names(df)) {
-        grouping_vars <- c("FeatureID", grouping_vars)
+    # Feature filtering: there must be variance, otherwise test will fail
+    df <- df |>
+        dplyr::group_by(.data[["rownames"]], !!rhs) |>
+        dplyr::filter(
+            dplyr::n_distinct(!!lhs) > 1,
+            stats::var(!!lhs, na.rm = TRUE) > 0
+        ) |>
+        dplyr::ungroup()
+
+    df <- df |>
+        dplyr::group_by(.data[["rownames"]]) |>
+        dplyr::filter(
+            dplyr::n_distinct(!!rhs) >= 2
+        )
+
+    # Paired samples are controlled in rstatix with sorting
+    if (!is.null(pair.by)) {
+        df <- df |> dplyr::arrange(!!rlang::sym(pair.by))
     }
 
-    # Build formula: y ~ group
-    formula <- as.formula(paste0(y, " ~ ", group))
+    # Create argument list
+    args <- list(
+        data = df,
+        formula = formula
+    )
+    if (!is.null(pair.by)) {
+        args[["paired"]] <- TRUE
+    }
+    args <- c(args, list(...))
 
-    # Run tests (optionally grouped by FeatureID + split.by)
-    if (length(grouping_vars) > 0) {
-        df <- df |> group_by(across(all_of(grouping_vars)))
+    # Call function
+    res <- do.call(FUN, args)
+    return(res)
+}
+
+################################################################################
+# Wide-format data helper
+################################################################################
+
+#' Build wide-format data for model-based methods
+#' @keywords internal
+#' @noRd
+#' @importFrom SummarizedExperiment assay colData assayNames
+.get_wide_data <- function(tse, formula) {
+    lhs <- .get_lhs(formula)
+    rhs <- .get_rhs(formula)
+
+    if (!all(c(lhs, rhs) %in% c(
+        SummarizedExperiment::assayNames(tse),
+        colnames(SummarizedExperiment::colData(tse))
+    ))) {
+        stop(
+            "All formula variables must be in assayNames(x) or colData(x).",
+            call. = FALSE
+        )
+    }
+
+    is_assay <- lhs %in% SummarizedExperiment::assayNames(tse)
+    if (is_assay) {
+        lhs_df <- SummarizedExperiment::assay(tse, lhs)
     } else {
-        # Keep as plain data.frame for single test (no FeatureID/split.by)
-        df <- df
+        lhs_df <- SummarizedExperiment::colData(tse)[, lhs, drop = FALSE] |>
+            as.data.frame() |>
+            t()
+    }
+    lhs_df <- lhs_df |> as.data.frame()
+
+    rhs_df <- SummarizedExperiment::colData(tse)[, rhs, drop = FALSE] |>
+        as.data.frame()
+
+    if (!all(vapply(lhs_df, is.numeric, logical(1L)))) {
+        stop("The dependent variable must be numeric.", call. = FALSE)
     }
 
-    # Ensure stable ordering for paired tests before calling the test function
-    if (paired && !is.null(pair.by)) {
-        arrange_vars <- c(grouping_vars, pair.by)
-        df <- df |> arrange(across(all_of(arrange_vars)))
+    data_list <- list(
+        matrix = lhs_df,
+        sample_metadata = rhs_df
+    )
+    return(data_list)
+}
+
+################################################################################
+# Limma calculator
+################################################################################
+
+#' @keywords internal
+#' @noRd
+.calculate_limma <- function(formula, mat, metadata) {
+    if (!requireNamespace("limma", quietly = TRUE)) {
+        stop(
+            "Package 'limma' is required. ",
+            "Install with: BiocManager::install('limma')",
+            call. = FALSE
+        )
+    }
+    rhs_formula <- .get_rhs_formula(formula)
+    design_mat <- stats::model.matrix(rhs_formula, data = metadata)
+
+    fit <- limma::lmFit(mat, design_mat)
+    fit <- limma::eBayes(fit)
+    return(fit)
+}
+
+################################################################################
+# Per-feature model helpers
+################################################################################
+
+#' Create design matrix from formula (drop intercept)
+#' @keywords internal
+#' @noRd
+.create_design_matrix <- function(formula, metadata) {
+    formula <- .get_rhs_formula(formula)
+    dm <- stats::model.matrix(formula, metadata) |>
+        as.data.frame()
+    dm[["(Intercept)"]] <- NULL
+    return(dm)
+}
+
+#' Train a model per feature and bind results
+#' @keywords internal
+#' @noRd
+#' @importFrom dplyr bind_rows mutate
+.train_model_per_feature <- function(formula, mat, metadata, FUN) {
+    feature_df <- mat |>
+        t() |>
+        as.data.frame()
+
+    results <- lapply(feature_df, function(x) {
+        FUN(x, metadata = metadata, formula = formula)
+    })
+
+    res <- dplyr::bind_rows(results, .id = "rownames") |>
+        dplyr::mutate(
+            q_value = stats::p.adjust(.data[["p_value"]], method = "BH")
+        )
+    return(res)
+}
+
+#' Run linear model per feature
+#' @keywords internal
+#' @noRd
+.run_lm <- function(abundance, metadata, formula) {
+    if (!requireNamespace("broom", quietly = TRUE)) {
+        stop(
+            "Package 'broom' is required. Install with: install.packages('broom')",
+            call. = FALSE
+        )
+    }
+    mm <- .create_design_matrix(formula, metadata)
+    mm <- cbind.data.frame(mm, abundance = abundance)
+
+    fit <- stats::lm(abundance ~ ., data = mm)
+    res <- broom::tidy(fit)
+
+    res <- res[res$term != "(Intercept)", c("term", "estimate", "p.value"),
+        drop = FALSE
+    ]
+    colnames(res) <- c("variable", "estimate", "p_value")
+    rownames(res) <- NULL
+    return(res)
+}
+
+#' Run ordinal regression model per feature
+#' @keywords internal
+#' @noRd
+.run_orm <- function(abundance, metadata, formula) {
+    if (!requireNamespace("rms", quietly = TRUE)) {
+        stop(
+            "Package 'rms' is required. Install with: install.packages('rms')",
+            call. = FALSE
+        )
+    }
+    mm <- .create_design_matrix(formula, metadata)
+    mm <- cbind.data.frame(mm, abundance = abundance)
+
+    inds <- seq_len(ncol(mm) - 1)
+    vars <- colnames(mm)[inds]
+
+    fit_1 <- rms::orm(abundance ~ ., data = mm)
+    score_1 <- fit_1$stats["Score"]
+
+    res <- data.frame(estimate = fit_1$coefficients[vars], p_value = NA)
+
+    if (length(inds) == 1) {
+        res$p_value <- fit_1$stats["Score P"]
+    } else {
+        for (i in inds) {
+            fit_0 <- rms::orm(abundance ~ ., data = mm[, -i])
+            score_0 <- fit_0$stats["Score"]
+            res$p_value[i] <- as.numeric(
+                1 - stats::pchisq(score_1 - score_0, df = 1)
+            )
+        }
     }
 
-    res <- FUN(df, formula, paired = paired, ...)
+    res[["variable"]] <- rownames(res)
+    rownames(res) <- NULL
+    return(res)
+}
 
-    # P-value adjustment
-    if ("p" %in% colnames(res) && any(!is.na(res$p))) {
-        res <- res |> adjust_pvalue(method = p.adjust.method)
+#' Run Firth logistic regression per feature
+#' @keywords internal
+#' @noRd
+.run_firth <- function(abundance, metadata, formula) {
+    if (!requireNamespace("logistf", quietly = TRUE)) {
+        stop(
+            "Package 'logistf' is required. ",
+            "Install with: install.packages('logistf')",
+            call. = FALSE
+        )
     }
+    mm <- .create_design_matrix(formula, metadata)
+    mm <- cbind.data.frame(mm, abundance = abundance)
 
-    # Subset to relevant features AFTER statistical calculations
-    if (!is.null(features) && "FeatureID" %in% colnames(res)) {
-        res <- res[res$FeatureID %in% features, , drop = FALSE]
-    }
+    fit <- logistf::logistf(
+        abundance ~ .,
+        data = mm,
+        control = logistf::logistf.control(maxit = 1000)
+    )
 
-    res <- DataFrame(res)
+    res <- data.frame(
+        estimate = fit$coefficients,
+        p_value = fit$prob
+    )
+
+    res <- res[!rownames(res) %in% c("(Intercept)"), , drop = FALSE]
+    res[["variable"]] <- rownames(res)
+    rownames(res) <- NULL
     return(res)
 }

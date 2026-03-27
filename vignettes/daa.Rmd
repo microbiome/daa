@@ -37,68 +37,73 @@ BiocManager::install("daa")
 
 ## Wilcoxon rank-sum test
 
-The `getWilcoxon()` function performs nonparametric Wilcoxon rank-sum tests
+The `getWilcoxonTest()` function performs nonparametric Wilcoxon rank-sum tests
 for each feature, comparing two groups.
 
 ```{r wilcoxon, message = FALSE}
 library(daa)
 library(mia)
 
-# Load example data (HintikkaXOData is used in unit tests)
-data(HintikkaXOData, package = "mia")
-tse <- MultiAssayExperiment::getWithColData(HintikkaXOData, "microbiota")
+# Load example data
+data(peerj13075, package = "mia")
+tse <- peerj13075
 
-# Standardize assay data
-tse <- transformAssay(tse, method = "relabundance")
+# Agglomerate to phylum level
+tse <- agglomerateByRank(tse, "phylum")
 
-# Subset for demonstration
-tse <- tse[1:50, ]
-
-# Remove degenerate features that are constant in both comparison groups.
-# With strict error propagation, these invalid per-feature tests now fail fast.
-fat <- as.character(colData(tse)$Fat)
-assay_mat <- assay(tse, "relabundance")
-keep <- apply(assay_mat, 1, function(v) {
-  high <- v[fat == "High"]
-  low <- v[fat == "Low"]
-  any(!is.na(high)) && any(!is.na(low)) &&
-    !(stats::var(high, na.rm = TRUE) == 0 && stats::var(low, na.rm = TRUE) == 0)
-})
-tse <- tse[keep, ]
-
-# Run Wilcoxon test comparing groups in 'Fat' metadata column
-res <- getWilcoxon(tse, assay.type = "relabundance", formula = ~Fat)
+# Run Wilcoxon test
+res <- getWilcoxonTest(tse, counts ~ Geographical_location)
 head(res)
-```
-
-Use `addWilcoxon()` to store results in `metadata()`:
-
-```{r add_wilcoxon}
-tse <- addWilcoxon(tse, assay.type = "relabundance", formula = ~Fat)
-head(S4Vectors::metadata(tse)$wilcoxon)
 ```
 
 ## t-test
 
-The `getTtest()` function performs t-tests (Welch's by default).
+The `getTTest()` function performs t-tests (Welch's by default).
 
 ```{r ttest}
-res <- getTtest(tse, assay.type = "relabundance", formula = ~Fat)
+res <- getTTest(tse, counts ~ Geographical_location)
+head(res)
+```
+
+## ANOVA and Kruskal-Wallis
+
+For comparing more than two groups:
+
+```{r anova}
+res <- getAnova(tse, counts ~ Geographical_location)
+head(res)
+```
+
+```{r kruskal}
+res <- getKruskal(tse, counts ~ Geographical_location)
 head(res)
 ```
 
 ## Testing metadata variables
 
-You can also test variables from `colData` or `rowData`. For example, testing
+You can also test variables from `colData`. For example, testing
 alpha diversity indices:
 
 ```{r metadata}
 # Add alpha diversity to colData
-tse <- mia::addAlpha(tse, index = "shannon_diversity")
+tse <- mia::addAlpha(tse, index = "shannon")
 
 # Test diversity differences between groups
-res <- getWilcoxon(tse, col.var = "shannon_diversity", formula = ~Fat)
+res <- getWilcoxonTest(tse, shannon ~ Geographical_location)
 head(res)
+```
+
+## Wide-format methods
+
+For model-based approaches, use formula with the assay name on the LHS:
+
+```{r lm, eval = FALSE}
+# Linear model per feature
+tse <- transformAssay(tse, method = "rclr")
+res <- getLm(tse, rclr ~ Geographical_location)
+
+# Limma
+fit <- getLimma(tse, counts ~ Geographical_location)
 ```
 
 # Session Info

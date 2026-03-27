@@ -18,15 +18,20 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
 Depends:
     R (>= 4.5.0),
-    mia
+    SummarizedExperiment
 Imports:
     dplyr,
-    methods,
+    rlang,
     rstatix,
-    S4Vectors,
     SingleCellExperiment,
-    SummarizedExperiment
+    stats,
+    tidyr
 Suggests:
+    broom,
+    limma,
+    logistf,
+    mia,
+    rms,
     BiocStyle,
     knitr,
     rmarkdown,
