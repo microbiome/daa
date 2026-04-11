@@ -7,7 +7,7 @@
 #' @param formula A formula where the LHS specifies the variable to test
 #'   (assay name, colData, or rowData variable) and the RHS specifies the
 #'   grouping variable, e.g., \code{counts ~ Group}.
-#' @param ... Additional arguments passed to \code{rstatix::kruskal_test}.
+#' @param ... Additional arguments passed to \code{kruskal_test}.
 #'
 #' @return A \code{data.frame} with test results.
 #'
@@ -28,7 +28,7 @@ getKruskal <- function(tse, formula, ...) {
     df <- .get_long_data(tse, formula)
     res <- .calculate_rstatix(
         df = df, formula = formula,
-        FUN = rstatix::kruskal_test, ...
+        FUN = kruskal_test, ...
     )
     return(res)
 }

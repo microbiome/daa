@@ -9,7 +9,7 @@
 #'   grouping variable, e.g., \code{counts ~ Group}.
 #' @param pair.by \code{Character scalar} or \code{NULL}. Column for pairing
 #'   samples in paired tests. (Default: \code{NULL})
-#' @param ... Additional arguments passed to \code{rstatix::t_test}.
+#' @param ... Additional arguments passed to \code{t_test}.
 #'
 #' @return A \code{data.frame} with test results.
 #'
@@ -30,7 +30,7 @@ getTTest <- function(tse, formula, pair.by = NULL, ...) {
     df <- .get_long_data(tse, formula, pair.by)
     res <- .calculate_rstatix(
         df = df, formula = formula,
-        pair.by = pair.by, FUN = rstatix::t_test, ...
+        pair.by = pair.by, FUN = t_test, ...
     )
     return(res)
 }

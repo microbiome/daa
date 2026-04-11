@@ -32,3 +32,26 @@ getFirth <- function(tse, formula, ...) {
     )
     return(res)
 }
+
+#' @keywords internal
+#' @noRd
+.run_firth <- function(abundance, metadata, formula) {
+    mm <- .create_design_matrix(formula, metadata)
+    mm <- cbind.data.frame(mm, abundance = abundance)
+
+    fit <- logistf::logistf(
+        abundance ~ .,
+        data = mm,
+        control = logistf::logistf.control(maxit = 1000)
+    )
+
+    res <- data.frame(
+        estimate = fit$coefficients,
+        p_value = fit$prob
+    )
+
+    res <- res[!rownames(res) %in% c("(Intercept)"), , drop = FALSE]
+    res[["variable"]] <- rownames(res)
+    rownames(res) <- NULL
+    return(res)
+}

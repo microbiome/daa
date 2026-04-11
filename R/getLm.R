@@ -30,3 +30,20 @@ getLm <- function(tse, formula, ...) {
     )
     return(res)
 }
+
+#' @keywords internal
+#' @noRd
+.run_lm <- function(abundance, metadata, formula) {
+    mm <- .create_design_matrix(formula, metadata)
+    mm <- cbind.data.frame(mm, abundance = abundance)
+
+    fit <- stats::lm(abundance ~ ., data = mm)
+    res <- broom::tidy(fit)
+
+    res <- res[res$term != "(Intercept)", c("term", "estimate", "p.value"),
+        drop = FALSE
+    ]
+    colnames(res) <- c("variable", "estimate", "p_value")
+    rownames(res) <- NULL
+    return(res)
+}

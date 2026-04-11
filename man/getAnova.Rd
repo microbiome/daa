@@ -13,7 +13,7 @@ getAnova(tse, formula, ...)
 (assay name, colData, or rowData variable) and the RHS specifies the
 grouping variable, e.g., \code{counts ~ Group}.}
 
-\item{...}{Additional arguments passed to \code{rstatix::anova_test}.}
+\item{...}{Additional arguments passed to \code{anova_test}.}
 }
 \value{
 A \code{data.frame} with test results.
