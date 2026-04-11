@@ -27,3 +27,14 @@ getLimma <- function(tse, formula, ...) {
     )
     return(res)
 }
+
+#' @keywords internal
+#' @noRd
+.calculate_limma <- function(formula, mat, metadata) {
+    rhs_formula <- .get_rhs_formula(formula)
+    design_mat <- stats::model.matrix(rhs_formula, data = metadata)
+
+    fit <- limma::lmFit(mat, design_mat)
+    fit <- limma::eBayes(fit)
+    return(fit)
+}

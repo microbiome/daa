@@ -16,7 +16,7 @@ grouping variable, e.g., \code{counts ~ Group}.}
 \item{pair.by}{\code{Character scalar} or \code{NULL}. Column for pairing
 samples in paired tests. (Default: \code{NULL})}
 
-\item{...}{Additional arguments passed to \code{rstatix::wilcox_test}.}
+\item{...}{Additional arguments passed to \code{wilcox_test}.}
 }
 \value{
 A \code{data.frame} with test results.

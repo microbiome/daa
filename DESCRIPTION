@@ -20,18 +20,18 @@ Depends:
     R (>= 4.5.0),
     SummarizedExperiment
 Imports:
+    broom,
     dplyr,
+    limma,
+    logistf,
     rlang,
+    rms,
     rstatix,
     SingleCellExperiment,
     stats,
     tidyr
 Suggests:
-    broom,
-    limma,
-    logistf,
     mia,
-    rms,
     BiocStyle,
     knitr,
     rmarkdown,

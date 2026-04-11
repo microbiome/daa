@@ -45,17 +45,17 @@ NULL
 .get_long_data <- function(tse, formula, pair.by = NULL) {
     lhs <- .get_lhs(formula)
 
-    is_assay <- lhs %in% SummarizedExperiment::assayNames(tse)
-    is_coldata <- lhs %in% colnames(SummarizedExperiment::colData(tse))
-    is_rowdata <- lhs %in% colnames(SummarizedExperiment::rowData(tse))
+    is_assay <- lhs %in% assayNames(tse)
+    is_coldata <- lhs %in% colnames(colData(tse))
+    is_rowdata <- lhs %in% colnames(rowData(tse))
 
     if (is_assay) {
         df <- .merge_tse(tse, lhs)
     } else {
         FUN <- if (is_coldata) {
-            SummarizedExperiment::colData
+            colData
         } else if (is_rowdata) {
-            SummarizedExperiment::rowData
+            rowData
         } else {
             stop(
                 "'", lhs, "' not found in assayNames, colData, or rowData.",
@@ -97,14 +97,14 @@ NULL
 #' @importFrom tidyr pivot_longer
 #' @importFrom dplyr left_join
 .merge_tse <- function(tse, assay.type) {
-    rd <- tse |> SummarizedExperiment::rowData()
-    cd <- tse |> SummarizedExperiment::colData()
-    mat <- tse |> SummarizedExperiment::assay(assay.type)
+    rd <- tse |> rowData()
+    cd <- tse |> colData()
+    mat <- tse |> assay(assay.type)
 
     mat <- mat |> as.data.frame()
     mat[["rownames"]] <- rownames(mat)
 
-    mat <- tidyr::pivot_longer(
+    mat <- pivot_longer(
         mat,
         cols = -"rownames",
         names_to = "colnames",
@@ -118,8 +118,8 @@ NULL
     cd[["colnames"]] <- rownames(cd)
 
     df <- mat |>
-        dplyr::left_join(rd, by = "rownames") |>
-        dplyr::left_join(cd, by = "colnames")
+        left_join(rd, by = "rownames") |>
+        left_join(cd, by = "colnames")
 
     return(df)
 }
@@ -138,27 +138,27 @@ NULL
 #' @importFrom rlang sym !!
 #' @importFrom dplyr group_by filter ungroup n_distinct arrange
 .calculate_rstatix <- function(df, formula, FUN, pair.by = NULL, ...) {
-    lhs <- .get_lhs(formula) |> rlang::sym()
-    rhs <- .get_rhs(formula) |> rlang::sym()
+    lhs <- .get_lhs(formula) |> sym()
+    rhs <- .get_rhs(formula) |> sym()
 
     # Feature filtering: there must be variance, otherwise test will fail
     df <- df |>
-        dplyr::group_by(.data[["rownames"]], !!rhs) |>
-        dplyr::filter(
-            dplyr::n_distinct(!!lhs) > 1,
+        group_by(.data[["rownames"]], !!rhs) |>
+        filter(
+            n_distinct(!!lhs) > 1,
             stats::var(!!lhs, na.rm = TRUE) > 0
         ) |>
-        dplyr::ungroup()
+        ungroup()
 
     df <- df |>
-        dplyr::group_by(.data[["rownames"]]) |>
-        dplyr::filter(
-            dplyr::n_distinct(!!rhs) >= 2
+        group_by(.data[["rownames"]]) |>
+        filter(
+            n_distinct(!!rhs) >= 2
         )
 
     # Paired samples are controlled in rstatix with sorting
     if (!is.null(pair.by)) {
-        df <- df |> dplyr::arrange(!!rlang::sym(pair.by))
+        df <- df |> arrange(!!sym(pair.by))
     }
 
     # Create argument list
@@ -189,8 +189,8 @@ NULL
     rhs <- .get_rhs(formula)
 
     if (!all(c(lhs, rhs) %in% c(
-        SummarizedExperiment::assayNames(tse),
-        colnames(SummarizedExperiment::colData(tse))
+        assayNames(tse),
+        colnames(colData(tse))
     ))) {
         stop(
             "All formula variables must be in assayNames(x) or colData(x).",
@@ -198,17 +198,17 @@ NULL
         )
     }
 
-    is_assay <- lhs %in% SummarizedExperiment::assayNames(tse)
+    is_assay <- lhs %in% assayNames(tse)
     if (is_assay) {
-        lhs_df <- SummarizedExperiment::assay(tse, lhs)
+        lhs_df <- assay(tse, lhs)
     } else {
-        lhs_df <- SummarizedExperiment::colData(tse)[, lhs, drop = FALSE] |>
+        lhs_df <- colData(tse)[, lhs, drop = FALSE] |>
             as.data.frame() |>
             t()
     }
     lhs_df <- lhs_df |> as.data.frame()
 
-    rhs_df <- SummarizedExperiment::colData(tse)[, rhs, drop = FALSE] |>
+    rhs_df <- colData(tse)[, rhs, drop = FALSE] |>
         as.data.frame()
 
     if (!all(vapply(lhs_df, is.numeric, logical(1L)))) {
@@ -221,32 +221,6 @@ NULL
     )
     return(data_list)
 }
-
-################################################################################
-# Limma calculator
-################################################################################
-
-#' @keywords internal
-#' @noRd
-.calculate_limma <- function(formula, mat, metadata) {
-    if (!requireNamespace("limma", quietly = TRUE)) {
-        stop(
-            "Package 'limma' is required. ",
-            "Install with: BiocManager::install('limma')",
-            call. = FALSE
-        )
-    }
-    rhs_formula <- .get_rhs_formula(formula)
-    design_mat <- stats::model.matrix(rhs_formula, data = metadata)
-
-    fit <- limma::lmFit(mat, design_mat)
-    fit <- limma::eBayes(fit)
-    return(fit)
-}
-
-################################################################################
-# Per-feature model helpers
-################################################################################
 
 #' Create design matrix from formula (drop intercept)
 #' @keywords internal
@@ -272,102 +246,9 @@ NULL
         FUN(x, metadata = metadata, formula = formula)
     })
 
-    res <- dplyr::bind_rows(results, .id = "rownames") |>
-        dplyr::mutate(
+    res <- bind_rows(results, .id = "rownames") |>
+        mutate(
             q_value = stats::p.adjust(.data[["p_value"]], method = "BH")
         )
-    return(res)
-}
-
-#' Run linear model per feature
-#' @keywords internal
-#' @noRd
-.run_lm <- function(abundance, metadata, formula) {
-    if (!requireNamespace("broom", quietly = TRUE)) {
-        stop(
-            "Package 'broom' is required. Install with: install.packages('broom')",
-            call. = FALSE
-        )
-    }
-    mm <- .create_design_matrix(formula, metadata)
-    mm <- cbind.data.frame(mm, abundance = abundance)
-
-    fit <- stats::lm(abundance ~ ., data = mm)
-    res <- broom::tidy(fit)
-
-    res <- res[res$term != "(Intercept)", c("term", "estimate", "p.value"),
-        drop = FALSE
-    ]
-    colnames(res) <- c("variable", "estimate", "p_value")
-    rownames(res) <- NULL
-    return(res)
-}
-
-#' Run ordinal regression model per feature
-#' @keywords internal
-#' @noRd
-.run_orm <- function(abundance, metadata, formula) {
-    if (!requireNamespace("rms", quietly = TRUE)) {
-        stop(
-            "Package 'rms' is required. Install with: install.packages('rms')",
-            call. = FALSE
-        )
-    }
-    mm <- .create_design_matrix(formula, metadata)
-    mm <- cbind.data.frame(mm, abundance = abundance)
-
-    inds <- seq_len(ncol(mm) - 1)
-    vars <- colnames(mm)[inds]
-
-    fit_1 <- rms::orm(abundance ~ ., data = mm)
-    score_1 <- fit_1$stats["Score"]
-
-    res <- data.frame(estimate = fit_1$coefficients[vars], p_value = NA)
-
-    if (length(inds) == 1) {
-        res$p_value <- fit_1$stats["Score P"]
-    } else {
-        for (i in inds) {
-            fit_0 <- rms::orm(abundance ~ ., data = mm[, -i])
-            score_0 <- fit_0$stats["Score"]
-            res$p_value[i] <- as.numeric(
-                1 - stats::pchisq(score_1 - score_0, df = 1)
-            )
-        }
-    }
-
-    res[["variable"]] <- rownames(res)
-    rownames(res) <- NULL
-    return(res)
-}
-
-#' Run Firth logistic regression per feature
-#' @keywords internal
-#' @noRd
-.run_firth <- function(abundance, metadata, formula) {
-    if (!requireNamespace("logistf", quietly = TRUE)) {
-        stop(
-            "Package 'logistf' is required. ",
-            "Install with: install.packages('logistf')",
-            call. = FALSE
-        )
-    }
-    mm <- .create_design_matrix(formula, metadata)
-    mm <- cbind.data.frame(mm, abundance = abundance)
-
-    fit <- logistf::logistf(
-        abundance ~ .,
-        data = mm,
-        control = logistf::logistf.control(maxit = 1000)
-    )
-
-    res <- data.frame(
-        estimate = fit$coefficients,
-        p_value = fit$prob
-    )
-
-    res <- res[!rownames(res) %in% c("(Intercept)"), , drop = FALSE]
-    res[["variable"]] <- rownames(res)
-    rownames(res) <- NULL
     return(res)
 }

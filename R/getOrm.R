@@ -29,3 +29,34 @@ getOrm <- function(tse, formula, ...) {
     )
     return(res)
 }
+
+#' @keywords internal
+#' @noRd
+.run_orm <- function(abundance, metadata, formula) {
+    mm <- .create_design_matrix(formula, metadata)
+    mm <- cbind.data.frame(mm, abundance = abundance)
+
+    inds <- seq_len(ncol(mm) - 1)
+    vars <- colnames(mm)[inds]
+
+    fit_1 <- rms::orm(abundance ~ ., data = mm)
+    score_1 <- fit_1$stats["Score"]
+
+    res <- data.frame(estimate = fit_1$coefficients[vars], p_value = NA)
+
+    if (length(inds) == 1) {
+        res$p_value <- fit_1$stats["Score P"]
+    } else {
+        for (i in inds) {
+            fit_0 <- rms::orm(abundance ~ ., data = mm[, -i])
+            score_0 <- fit_0$stats["Score"]
+            res$p_value[i] <- as.numeric(
+                1 - stats::pchisq(score_1 - score_0, df = 1)
+            )
+        }
+    }
+
+    res[["variable"]] <- rownames(res)
+    rownames(res) <- NULL
+    return(res)
+}
