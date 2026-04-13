@@ -17,6 +17,8 @@
 #' tse <- mia::agglomerateByRank(tse, "phylum")
 #' fit <- getLimma(tse, counts ~ Geographical_location)
 #'
+#' @importFrom limma eBayes lmFit
+#' @importFrom stats model.matrix
 #' @export
 getLimma <- function(tse, formula, ...) {
     data_list <- .get_wide_data(tse, formula)
@@ -32,9 +34,9 @@ getLimma <- function(tse, formula, ...) {
 #' @noRd
 .calculate_limma <- function(formula, mat, metadata) {
     rhs_formula <- .get_rhs_formula(formula)
-    design_mat <- stats::model.matrix(rhs_formula, data = metadata)
+    design_mat <- model.matrix(rhs_formula, data = metadata)
 
-    fit <- limma::lmFit(mat, design_mat)
-    fit <- limma::eBayes(fit)
+    fit <- lmFit(mat, design_mat)
+    fit <- eBayes(fit)
     return(fit)
 }

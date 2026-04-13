@@ -7,10 +7,13 @@
 #' @param formula A formula where the LHS specifies the assay or colData
 #'   variable (must be binary/presence-absence) and the RHS specifies variables
 #'   from \code{colData(tse)}, e.g., \code{pa ~ Group + Age}.
+#' @param p_adjust_method \code{Character scalar} or \code{NULL}. Method passed
+#'   to \code{p.adjust} for multiple testing correction. If \code{NULL}, no
+#'   adjusted p-values are added. (Default: \code{"BH"})
 #' @param ... Additional arguments (reserved for future use).
 #'
 #' @return A \code{data.frame} with per-feature model coefficients, p-values,
-#'   and BH-adjusted q-values.
+#'   and optionally adjusted p-values in column \code{q_value}.
 #'
 #' @examples
 #' \dontrun{
@@ -21,14 +24,16 @@
 #' res <- getFirth(tse, pa ~ Geographical_location)
 #' }
 #'
+#' @importFrom logistf logistf logistf.control
 #' @export
-getFirth <- function(tse, formula, ...) {
+getFirth <- function(tse, formula, p_adjust_method = "BH", ...) {
     data_list <- .get_wide_data(tse, formula)
     res <- .train_model_per_feature(
         formula = formula,
         mat = data_list[["matrix"]],
         metadata = data_list[["sample_metadata"]],
-        FUN = .run_firth
+        FUN = .run_firth,
+        p_adjust_method = p_adjust_method
     )
     return(res)
 }
@@ -39,10 +44,10 @@ getFirth <- function(tse, formula, ...) {
     mm <- .create_design_matrix(formula, metadata)
     mm <- cbind.data.frame(mm, abundance = abundance)
 
-    fit <- logistf::logistf(
+    fit <- logistf(
         abundance ~ .,
         data = mm,
-        control = logistf::logistf.control(maxit = 1000)
+        control = logistf.control(maxit = 1000)
     )
 
     res <- data.frame(

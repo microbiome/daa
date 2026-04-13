@@ -1,6 +1,3 @@
-#' @importFrom rlang .data
-NULL
-
 ################################################################################
 # Formula helpers
 ################################################################################
@@ -23,10 +20,11 @@ NULL
 
 #' @keywords internal
 #' @noRd
+#' @importFrom stats as.formula delete.response terms
 .get_rhs_formula <- function(formula) {
-    rhs_formula <- stats::terms(formula) |>
-        stats::delete.response() |>
-        stats::as.formula()
+    rhs_formula <- terms(formula) |>
+        delete.response() |>
+        as.formula()
     return(rhs_formula)
 }
 
@@ -136,7 +134,9 @@ NULL
 #' @keywords internal
 #' @noRd
 #' @importFrom rlang sym !!
+#' @importFrom rlang .data
 #' @importFrom dplyr group_by filter ungroup n_distinct arrange
+#' @importFrom stats var
 .calculate_rstatix <- function(df, formula, FUN, pair.by = NULL, ...) {
     lhs <- .get_lhs(formula) |> sym()
     rhs <- .get_rhs(formula) |> sym()
@@ -146,7 +146,7 @@ NULL
         group_by(.data[["rownames"]], !!rhs) |>
         filter(
             n_distinct(!!lhs) > 1,
-            stats::var(!!lhs, na.rm = TRUE) > 0
+            var(!!lhs, na.rm = TRUE) > 0
         ) |>
         ungroup()
 
@@ -225,9 +225,10 @@ NULL
 #' Create design matrix from formula (drop intercept)
 #' @keywords internal
 #' @noRd
+#' @importFrom stats model.matrix
 .create_design_matrix <- function(formula, metadata) {
     formula <- .get_rhs_formula(formula)
-    dm <- stats::model.matrix(formula, metadata) |>
+    dm <- model.matrix(formula, metadata) |>
         as.data.frame()
     dm[["(Intercept)"]] <- NULL
     return(dm)
@@ -237,7 +238,10 @@ NULL
 #' @keywords internal
 #' @noRd
 #' @importFrom dplyr bind_rows mutate
-.train_model_per_feature <- function(formula, mat, metadata, FUN) {
+#' @importFrom rlang .data
+#' @importFrom stats p.adjust
+.train_model_per_feature <- function(formula, mat, metadata, FUN,
+        p_adjust_method = "BH") {
     feature_df <- mat |>
         t() |>
         as.data.frame()
@@ -246,9 +250,12 @@ NULL
         FUN(x, metadata = metadata, formula = formula)
     })
 
-    res <- bind_rows(results, .id = "rownames") |>
-        mutate(
-            q_value = stats::p.adjust(.data[["p_value"]], method = "BH")
-        )
+    res <- bind_rows(results, .id = "rownames")
+    if (!is.null(p_adjust_method)) {
+        res <- res |>
+            mutate(
+                q_value = p.adjust(.data[["p_value"]], method = p_adjust_method)
+            )
+    }
     return(res)
 }

@@ -7,10 +7,13 @@
 #' @param formula A formula where the LHS specifies the assay or colData
 #'   variable and the RHS specifies variables from \code{colData(tse)},
 #'   e.g., \code{rclr ~ Group}.
+#' @param p_adjust_method \code{Character scalar} or \code{NULL}. Method passed
+#'   to \code{p.adjust} for multiple testing correction. If \code{NULL}, no
+#'   adjusted p-values are added. (Default: \code{"BH"})
 #' @param ... Additional arguments (reserved for future use).
 #'
 #' @return A \code{data.frame} with per-feature model coefficients, p-values,
-#'   and BH-adjusted q-values.
+#'   and optionally adjusted p-values in column \code{q_value}.
 #'
 #' @examples
 #' data(peerj13075, package = "mia")
@@ -19,14 +22,17 @@
 #' tse <- mia::transformAssay(tse, method = "rclr")
 #' res <- getLm(tse, rclr ~ Geographical_location)
 #'
+#' @importFrom broom tidy
+#' @importFrom stats lm
 #' @export
-getLm <- function(tse, formula, ...) {
+getLm <- function(tse, formula, p_adjust_method = "BH", ...) {
     data_list <- .get_wide_data(tse, formula)
     res <- .train_model_per_feature(
         formula = formula,
         mat = data_list[["matrix"]],
         metadata = data_list[["sample_metadata"]],
-        FUN = .run_lm
+        FUN = .run_lm,
+        p_adjust_method = p_adjust_method
     )
     return(res)
 }
@@ -37,8 +43,8 @@ getLm <- function(tse, formula, ...) {
     mm <- .create_design_matrix(formula, metadata)
     mm <- cbind.data.frame(mm, abundance = abundance)
 
-    fit <- stats::lm(abundance ~ ., data = mm)
-    res <- broom::tidy(fit)
+    fit <- lm(abundance ~ ., data = mm)
+    res <- tidy(fit)
 
     res <- res[res$term != "(Intercept)", c("term", "estimate", "p.value"),
         drop = FALSE
