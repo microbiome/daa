@@ -4,7 +4,7 @@
 \alias{getLm}
 \title{Fit linear model per feature}
 \usage{
-getLm(tse, formula, ...)
+getLm(tse, formula, p_adjust_method = "BH", ...)
 }
 \arguments{
 \item{tse}{A \code{SummarizedExperiment} object.}
@@ -13,11 +13,15 @@ getLm(tse, formula, ...)
 variable and the RHS specifies variables from \code{colData(tse)},
 e.g., \code{rclr ~ Group}.}
 
+\item{p_adjust_method}{\code{Character scalar} or \code{NULL}. Method passed
+to \code{p.adjust} for multiple testing correction. If \code{NULL}, no
+adjusted p-values are added. (Default: \code{"BH"})}
+
 \item{...}{Additional arguments (reserved for future use).}
 }
 \value{
 A \code{data.frame} with per-feature model coefficients, p-values,
-and BH-adjusted q-values.
+and optionally adjusted p-values in column \code{q_value}.
 }
 \description{
 Fits a linear model per feature using wide-format data and sample metadata.

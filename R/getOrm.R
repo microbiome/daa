@@ -7,10 +7,13 @@
 #' @param formula A formula where the LHS specifies the assay or colData
 #'   variable and the RHS specifies variables from \code{colData(tse)},
 #'   e.g., \code{counts ~ Group}.
+#' @param p_adjust_method \code{Character scalar} or \code{NULL}. Method passed
+#'   to \code{p.adjust} for multiple testing correction. If \code{NULL}, no
+#'   adjusted p-values are added. (Default: \code{"BH"})
 #' @param ... Additional arguments (reserved for future use).
 #'
 #' @return A \code{data.frame} with per-feature model coefficients, p-values,
-#'   and BH-adjusted q-values.
+#'   and optionally adjusted p-values in column \code{q_value}.
 #'
 #' @examples
 #' data(peerj13075, package = "mia")
@@ -18,14 +21,17 @@
 #' tse <- mia::agglomerateByRank(tse, "phylum")
 #' res <- getOrm(tse, counts ~ Geographical_location)
 #'
+#' @importFrom rms orm
+#' @importFrom stats pchisq
 #' @export
-getOrm <- function(tse, formula, ...) {
+getOrm <- function(tse, formula, p_adjust_method = "BH", ...) {
     data_list <- .get_wide_data(tse, formula)
     res <- .train_model_per_feature(
         formula = formula,
         mat = data_list[["matrix"]],
         metadata = data_list[["sample_metadata"]],
-        FUN = .run_orm
+        FUN = .run_orm,
+        p_adjust_method = p_adjust_method
     )
     return(res)
 }
@@ -39,7 +45,7 @@ getOrm <- function(tse, formula, ...) {
     inds <- seq_len(ncol(mm) - 1)
     vars <- colnames(mm)[inds]
 
-    fit_1 <- rms::orm(abundance ~ ., data = mm)
+    fit_1 <- orm(abundance ~ ., data = mm)
     score_1 <- fit_1$stats["Score"]
 
     res <- data.frame(estimate = fit_1$coefficients[vars], p_value = NA)
@@ -48,10 +54,10 @@ getOrm <- function(tse, formula, ...) {
         res$p_value <- fit_1$stats["Score P"]
     } else {
         for (i in inds) {
-            fit_0 <- rms::orm(abundance ~ ., data = mm[, -i])
+            fit_0 <- orm(abundance ~ ., data = mm[, -i])
             score_0 <- fit_0$stats["Score"]
             res$p_value[i] <- as.numeric(
-                1 - stats::pchisq(score_1 - score_0, df = 1)
+                1 - pchisq(score_1 - score_0, df = 1)
             )
         }
     }

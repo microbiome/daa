@@ -4,7 +4,7 @@
 \alias{getOrm}
 \title{Fit ordinal regression model per feature}
 \usage{
-getOrm(tse, formula, ...)
+getOrm(tse, formula, p_adjust_method = "BH", ...)
 }
 \arguments{
 \item{tse}{A \code{SummarizedExperiment} object.}
@@ -13,11 +13,15 @@ getOrm(tse, formula, ...)
 variable and the RHS specifies variables from \code{colData(tse)},
 e.g., \code{counts ~ Group}.}
 
+\item{p_adjust_method}{\code{Character scalar} or \code{NULL}. Method passed
+to \code{p.adjust} for multiple testing correction. If \code{NULL}, no
+adjusted p-values are added. (Default: \code{"BH"})}
+
 \item{...}{Additional arguments (reserved for future use).}
 }
 \value{
 A \code{data.frame} with per-feature model coefficients, p-values,
-and BH-adjusted q-values.
+and optionally adjusted p-values in column \code{q_value}.
 }
 \description{
 Fits an ordinal regression model (ORM) per feature using wide-format data.

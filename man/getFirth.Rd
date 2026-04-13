@@ -4,7 +4,7 @@
 \alias{getFirth}
 \title{Fit Firth logistic regression per feature}
 \usage{
-getFirth(tse, formula, ...)
+getFirth(tse, formula, p_adjust_method = "BH", ...)
 }
 \arguments{
 \item{tse}{A \code{SummarizedExperiment} object.}
@@ -13,11 +13,15 @@ getFirth(tse, formula, ...)
 variable (must be binary/presence-absence) and the RHS specifies variables
 from \code{colData(tse)}, e.g., \code{pa ~ Group + Age}.}
 
+\item{p_adjust_method}{\code{Character scalar} or \code{NULL}. Method passed
+to \code{p.adjust} for multiple testing correction. If \code{NULL}, no
+adjusted p-values are added. (Default: \code{"BH"})}
+
 \item{...}{Additional arguments (reserved for future use).}
 }
 \value{
 A \code{data.frame} with per-feature model coefficients, p-values,
-and BH-adjusted q-values.
+and optionally adjusted p-values in column \code{q_value}.
 }
 \description{
 Fits Firth logistic regression per feature using wide-format data.
