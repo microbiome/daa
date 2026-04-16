@@ -19,7 +19,9 @@ samples in paired tests. (Default: \code{NULL})}
 \item{...}{Additional arguments passed to \code{wilcox_test}.}
 }
 \value{
-A \code{data.frame} with test results.
+A \code{data.frame} with test results. For unpaired two-group
+comparisons with non-empty results, the output also includes Cliff's delta
+effect size columns.
 }
 \description{
 Performs Wilcoxon rank-sum test (Mann-Whitney U) to compare values between
