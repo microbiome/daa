@@ -185,7 +185,7 @@
 #' @importFrom dplyr bind_rows n_distinct
 #' @importFrom effsize cliff.delta
 .calculate_effect_size <- function(df, formula, pair.by = NULL,
-        effect_size = c("none", "cliff"), rownames_filter = NULL) {
+                                   effect_size = c("none", "cliff"), rownames_filter = NULL) {
     effect_size <- match.arg(effect_size)
     if (effect_size == "none") {
         return(NULL)
@@ -298,7 +298,7 @@
 #' @importFrom rlang .data
 #' @importFrom stats p.adjust
 .train_model_per_feature <- function(formula, mat, metadata, FUN,
-        p_adjust_method = "BH") {
+                                     p_adjust_method = "BH") {
     feature_df <- mat |>
         t() |>
         as.data.frame()

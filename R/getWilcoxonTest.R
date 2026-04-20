@@ -29,7 +29,7 @@
 #' @importFrom rstatix wilcox_test
 #' @export
 getWilcoxonTest <- function(tse, formula, pair.by = NULL,
-        effect_size = c("none", "cliff"), ...) {
+                            effect_size = c("none", "cliff"), ...) {
     if (length(all.vars(formula[[3]])) != 1L) {
         stop("Formula RHS must specify exactly one grouping variable.",
             call. = FALSE
