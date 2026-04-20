@@ -1,0 +1,21 @@
+<urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
+<url><loc>/404.html</loc></url>
+<url><loc>/CODE_OF_CONDUCT.html</loc></url>
+<url><loc>/CONTRIBUTING.html</loc></url>
+<url><loc>/SUPPORT.html</loc></url>
+<url><loc>/articles/daa.html</loc></url>
+<url><loc>/articles/index.html</loc></url>
+<url><loc>/authors.html</loc></url>
+<url><loc>/index.html</loc></url>
+<url><loc>/news/index.html</loc></url>
+<url><loc>/reference/getAnova.html</loc></url>
+<url><loc>/reference/getFirth.html</loc></url>
+<url><loc>/reference/getKruskal.html</loc></url>
+<url><loc>/reference/getLimma.html</loc></url>
+<url><loc>/reference/getLm.html</loc></url>
+<url><loc>/reference/getOrm.html</loc></url>
+<url><loc>/reference/getTTest.html</loc></url>
+<url><loc>/reference/getWilcoxonTest.html</loc></url>
+<url><loc>/reference/index.html</loc></url>
+</urlset>
+
