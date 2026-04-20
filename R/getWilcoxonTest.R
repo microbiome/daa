@@ -10,11 +10,14 @@
 #'   grouping variable, e.g., \code{counts ~ Group}.
 #' @param pair.by \code{Character scalar} or \code{NULL}. Column for pairing
 #'   samples in paired tests. (Default: \code{NULL})
+#' @param effect_size \code{Character scalar}. Effect size to compute.
+#'   Supported values are \code{"none"} and \code{"cliff"}.
+#'   (Default: \code{"none"})
 #' @param ... Additional arguments passed to \code{wilcox_test}.
 #'
-#' @return A \code{data.frame} with test results. For unpaired two-group
-#'   comparisons with non-empty results, the output also includes Cliff's delta
-#'   effect size columns.
+#' @return A \code{data.frame} with test results. If
+#'   \code{effect_size = "cliff"} and the comparison is unpaired with exactly
+#'   two groups, output also includes Cliff's delta effect size columns.
 #'
 #' @examples
 #' data(peerj13075, package = "mia")
@@ -22,40 +25,33 @@
 #' tse <- mia::agglomerateByRank(tse, "phylum")
 #' res <- getWilcoxonTest(tse, counts ~ Geographical_location)
 #'
-#' @importFrom dplyr bind_rows left_join n_distinct
-#' @importFrom effsize cliff.delta
+#' @importFrom dplyr left_join
 #' @importFrom rstatix wilcox_test
 #' @export
-getWilcoxonTest <- function(tse, formula, pair.by = NULL, ...) {
+getWilcoxonTest <- function(tse, formula, pair.by = NULL,
+        effect_size = c("none", "cliff"), ...) {
     if (length(all.vars(formula[[3]])) != 1L) {
         stop("Formula RHS must specify exactly one grouping variable.",
             call. = FALSE
         )
     }
+    effect_size <- match.arg(effect_size)
+
     df <- .get_long_data(tse, formula, pair.by)
     res <- .calculate_rstatix(
         df = df, formula = formula,
         pair.by = pair.by, FUN = wilcox_test, ...
     )
-    lhs <- .get_lhs(formula)
-    rhs <- .get_rhs(formula)
-    n_groups <- n_distinct(df[[rhs]], na.rm = TRUE)
 
-    if (is.null(pair.by) && n_groups == 2L && nrow(res) > 0L) {
-        df_delta <- df[df$rownames %in% unique(res$rownames), , drop = FALSE]
-        delta_res <- lapply(split(df_delta, df_delta$rownames), function(.x) {
-            .x <- .x[stats::complete.cases(.x[, c(lhs, rhs), drop = FALSE]), ,
-                drop = FALSE
-            ]
-            cd <- cliff.delta(formula = formula, data = .x)
-            data.frame(
-                cliff_delta = unname(cd$estimate),
-                cliff_delta_lower = cd$conf.int[1],
-                cliff_delta_upper = cd$conf.int[2],
-                cliff_delta_magnitude = unname(cd$magnitude)
-            )
-        }) |>
-            bind_rows(.id = "rownames")
+    delta_res <- .calculate_effect_size(
+        df = df,
+        formula = formula,
+        pair.by = pair.by,
+        effect_size = effect_size,
+        rownames_filter = res$rownames
+    )
+
+    if (!is.null(delta_res)) {
         res <- left_join(res, delta_res, by = "rownames")
     }
     return(res)

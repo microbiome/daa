@@ -176,6 +176,63 @@
     return(res)
 }
 
+#' Calculate effect size per feature from long-format data
+#'
+#' Currently supports Cliff's delta for unpaired two-group comparisons.
+#'
+#' @keywords internal
+#' @noRd
+#' @importFrom dplyr bind_rows n_distinct
+#' @importFrom effsize cliff.delta
+.calculate_effect_size <- function(df, formula, pair.by = NULL,
+        effect_size = c("none", "cliff"), rownames_filter = NULL) {
+    effect_size <- match.arg(effect_size)
+    if (effect_size == "none") {
+        return(NULL)
+    }
+
+    lhs <- .get_lhs(formula)
+    rhs <- .get_rhs(formula)
+    n_groups <- n_distinct(df[[rhs]], na.rm = TRUE)
+
+    # Cliff's delta is defined here for unpaired two-group comparisons.
+    if (!is.null(pair.by) || n_groups != 2L) {
+        return(NULL)
+    }
+
+    if (!is.null(rownames_filter)) {
+        df <- df[df$rownames %in% unique(rownames_filter), , drop = FALSE]
+    }
+
+    if (nrow(df) == 0L) {
+        return(NULL)
+    }
+
+    delta_res <- lapply(split(df, df$rownames), function(.x) {
+        .x <- .x[stats::complete.cases(.x[, c(lhs, rhs), drop = FALSE]), ,
+            drop = FALSE
+        ]
+        if (nrow(.x) == 0L || n_distinct(.x[[rhs]], na.rm = TRUE) != 2L) {
+            return(NULL)
+        }
+        cd <- cliff.delta(formula = formula, data = .x)
+        data.frame(
+            cliff_delta = unname(cd$estimate),
+            cliff_delta_lower = cd$conf.int[1],
+            cliff_delta_upper = cd$conf.int[2],
+            cliff_delta_magnitude = unname(cd$magnitude)
+        )
+    })
+
+    keep <- !vapply(delta_res, is.null, logical(1L))
+    if (!any(keep)) {
+        return(NULL)
+    }
+
+    delta_res <- bind_rows(delta_res[keep], .id = "rownames")
+    return(delta_res)
+}
+
 ################################################################################
 # Wide-format data helper
 ################################################################################
