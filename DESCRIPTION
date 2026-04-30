@@ -23,6 +23,7 @@ Depends:
 Imports:
     broom,
     dplyr,
+    effsize,
     limma,
     logistf,
     rlang,
