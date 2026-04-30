@@ -4,7 +4,13 @@
 \alias{getWilcoxonTest}
 \title{Perform Wilcoxon rank-sum test}
 \usage{
-getWilcoxonTest(tse, formula, pair.by = NULL, ...)
+getWilcoxonTest(
+  tse,
+  formula,
+  pair.by = NULL,
+  effect_size = c("none", "cliff", "cohen"),
+  ...
+)
 }
 \arguments{
 \item{tse}{A \code{SummarizedExperiment} object.}
@@ -16,10 +22,16 @@ grouping variable, e.g., \code{counts ~ Group}.}
 \item{pair.by}{\code{Character scalar} or \code{NULL}. Column for pairing
 samples in paired tests. (Default: \code{NULL})}
 
+\item{effect_size}{\code{Character scalar}. Effect size to compute.
+Supported values are \code{"none"}, \code{"cliff"}, and \code{"cohen"}.
+(Default: \code{"none"})}
+
 \item{...}{Additional arguments passed to \code{wilcox_test}.}
 }
 \value{
-A \code{data.frame} with test results.
+A \code{data.frame} with test results. If
+\code{effect_size = "cliff"} or \code{"cohen"} and the comparison is
+unpaired with exactly two groups, output also includes effect size columns.
 }
 \description{
 Performs Wilcoxon rank-sum test (Mann-Whitney U) to compare values between

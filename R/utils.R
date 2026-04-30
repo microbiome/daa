@@ -176,6 +176,83 @@
     return(res)
 }
 
+#' Calculate effect size per feature from long-format data
+#'
+#' Currently supports generic effect-size output for unpaired two-group comparisons.
+#'
+#' @keywords internal
+#' @noRd
+#' @importFrom dplyr bind_rows n_distinct
+#' @importFrom effsize cliff.delta cohen.d
+.calculate_effect_size <- function(df, formula, pair.by = NULL,
+        effect_size = c("none", "cliff", "cohen")) {
+    effect_size <- match.arg(effect_size)
+    if (effect_size == "none") {
+        return(NULL)
+    }
+
+    lhs <- .get_lhs(formula)
+    rhs <- .get_rhs(formula)
+
+    if (nrow(df) == 0L) {
+        return(NULL)
+    }
+
+    if (effect_size == "cliff") {
+        if (!is.null(pair.by)) {
+            return(NULL)
+        }
+        delta_res <- lapply(split(df, df$rownames), function(.x) {
+        .x <- .x[stats::complete.cases(.x[, c(lhs, rhs), drop = FALSE]), ,
+            drop = FALSE
+        ]
+        if (nrow(.x) == 0L || n_distinct(.x[[rhs]], na.rm = TRUE) != 2L) {
+            return(NULL)
+        }
+        cd <- cliff.delta(formula = formula, data = .x)
+            data.frame(
+                effect_size = unname(cd$estimate),
+                effect_size_lower = cd$conf.int[1],
+                effect_size_upper = cd$conf.int[2],
+                effect_size_magnitude = unname(cd$magnitude)
+            )
+    })
+        # remove NULLs and bind results
+        delta_res <- Filter(Negate(is.null), delta_res)
+        if (length(delta_res) == 0L) return(NULL)
+        delta_res <- bind_rows(delta_res, .id = "rownames")
+        return(delta_res)
+    }
+
+    if (effect_size == "cohen") {
+        if (!is.null(pair.by)) {
+            return(NULL)
+        }
+        res_list <- lapply(split(df, df$rownames), function(.x) {
+            .x <- .x[stats::complete.cases(.x[, c(lhs, rhs), drop = FALSE]), ,
+                drop = FALSE
+            ]
+            if (nrow(.x) == 0L || n_distinct(.x[[rhs]], na.rm = TRUE) < 2L) {
+                return(NULL)
+            }
+            cd <- tryCatch(effsize::cohen.d(formula = formula, data = .x),
+                error = function(e) NULL
+            )
+            if (is.null(cd)) return(NULL)
+            est <- if (!is.null(cd$estimate)) unname(cd$estimate) else NA_real_
+            mag <- if (!is.null(cd$magnitude)) unname(cd$magnitude) else NA_character_
+            data.frame(
+                effect_size = est,
+                effect_size_magnitude = mag,
+                stringsAsFactors = FALSE
+            )
+        })
+        res_list <- Filter(Negate(is.null), res_list)
+        if (length(res_list) == 0L) return(NULL)
+        return(bind_rows(res_list, .id = "rownames"))
+    }
+}
+
 ################################################################################
 # Wide-format data helper
 ################################################################################
@@ -241,7 +318,7 @@
 #' @importFrom rlang .data
 #' @importFrom stats p.adjust
 .train_model_per_feature <- function(formula, mat, metadata, FUN,
-        p_adjust_method = "BH") {
+                                     p_adjust_method = "BH") {
     feature_df <- mat |>
         t() |>
         as.data.frame()
