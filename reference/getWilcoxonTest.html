@@ -58,13 +58,7 @@ two groups.</p>
     </div>
 
     <div id="ref-usage">
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">getWilcoxonTest</span><span class="op">(</span></span>
-<span>  <span class="va">tse</span>,</span>
-<span>  <span class="va">formula</span>,</span>
-<span>  pair.by <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  effect_size <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"none"</span>, <span class="st">"cliff"</span>, <span class="st">"cohen"</span><span class="op">)</span>,</span>
-<span>  <span class="va">...</span></span>
-<span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">getWilcoxonTest</span><span class="op">(</span><span class="va">tse</span>, <span class="va">formula</span>, pair.by <span class="op">=</span> <span class="cn">NULL</span>, effect.size <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div id="arguments">
@@ -86,10 +80,11 @@ grouping variable, e.g., <code>counts ~ Group</code>.</p></dd>
 samples in paired tests. (Default: <code>NULL</code>)</p></dd>
 
 
-<dt id="arg-effect-size">effect_size<a class="anchor" aria-label="anchor" href="#arg-effect-size"></a></dt>
-<dd><p><code>Character scalar</code>. Effect size to compute.
-Supported values are <code>"none"</code>, <code>"cliff"</code>, and <code>"cohen"</code>.
-(Default: <code>"none"</code>)</p></dd>
+<dt id="arg-effect-size">effect.size<a class="anchor" aria-label="anchor" href="#arg-effect-size"></a></dt>
+<dd><p><code>NULL</code> or <code>Character scalar</code>. If
+<code>"cliff"</code> or <code>"cohen"</code>, the effect size from
+<code><a href="getEffectSize.html">getEffectSize</a></code> is added to the results. Not supported for
+paired tests. (Default: <code>NULL</code>)</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
@@ -98,9 +93,7 @@ Supported values are <code>"none"</code>, <code>"cliff"</code>, and <code>"cohen
 </dl></div>
     <div id="value">
     <h2>Value</h2>
-    <p>A <code>data.frame</code> with test results. If
-<code>effect_size = "cliff"</code> or <code>"cohen"</code> and the comparison is
-unpaired with exactly two groups, output also includes effect size columns.</p>
+    <p>A <code>data.frame</code> with test results.</p>
     </div>
 
     <div id="ref-examples">
@@ -109,6 +102,10 @@ unpaired with exactly two groups, output also includes effect size columns.</p>
 <span class="r-in"><span><span class="va">tse</span> <span class="op">&lt;-</span> <span class="va">peerj13075</span></span></span>
 <span class="r-in"><span><span class="va">tse</span> <span class="op">&lt;-</span> <span class="fu">mia</span><span class="fu">::</span><span class="fu"><a href="https://microbiome.github.io/mia/reference/agglomerate-methods.html" class="external-link">agglomerateByRank</a></span><span class="op">(</span><span class="va">tse</span>, <span class="st">"phylum"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu">getWilcoxonTest</span><span class="op">(</span><span class="va">tse</span>, <span class="va">counts</span> <span class="op">~</span> <span class="va">Geographical_location</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># Add Cliff's delta</span></span></span>
+<span class="r-in"><span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu">getWilcoxonTest</span><span class="op">(</span></span></span>
+<span class="r-in"><span>    <span class="va">tse</span>, <span class="va">counts</span> <span class="op">~</span> <span class="va">Geographical_location</span>, effect.size <span class="op">=</span> <span class="st">"cliff"</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>
@@ -124,7 +121,7 @@ unpaired with exactly two groups, output also includes effect size columns.</p>
 </div>
 
 <div class="pkgdown">
-  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p></p><p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
       </footer></div>
