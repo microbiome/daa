@@ -4,7 +4,7 @@
 \alias{getWilcoxonTest}
 \title{Perform Wilcoxon rank-sum test}
 \usage{
-getWilcoxonTest(tse, formula, pair.by = NULL, ...)
+getWilcoxonTest(tse, formula, pair.by = NULL, effect.size = NULL, ...)
 }
 \arguments{
 \item{tse}{A \code{SummarizedExperiment} object.}
@@ -15,6 +15,11 @@ grouping variable, e.g., \code{counts ~ Group}.}
 
 \item{pair.by}{\code{Character scalar} or \code{NULL}. Column for pairing
 samples in paired tests. (Default: \code{NULL})}
+
+\item{effect.size}{\code{NULL} or \code{Character scalar}. If
+\code{"cliff"} or \code{"cohen"}, the effect size from
+\code{\link{getEffectSize}} is added to the results. Not supported for
+paired tests. (Default: \code{NULL})}
 
 \item{...}{Additional arguments passed to \code{wilcox_test}.}
 }
@@ -30,5 +35,9 @@ data(peerj13075, package = "mia")
 tse <- peerj13075
 tse <- mia::agglomerateByRank(tse, "phylum")
 res <- getWilcoxonTest(tse, counts ~ Geographical_location)
+
+# Add Cliff's delta
+res <- getWilcoxonTest(
+    tse, counts ~ Geographical_location, effect.size = "cliff")
 
 }
