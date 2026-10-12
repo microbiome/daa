@@ -10,14 +10,13 @@
 #'   grouping variable, e.g., \code{counts ~ Group}.
 #' @param pair.by \code{Character scalar} or \code{NULL}. Column for pairing
 #'   samples in paired tests. (Default: \code{NULL})
-#' @param effect_size \code{Character scalar}. Effect size to compute.
-#'   Supported values are \code{"none"}, \code{"cliff"}, and \code{"cohen"}.
-#'   (Default: \code{"none"})
+#' @param effect.size \code{NULL} or \code{Character scalar}. If
+#'   \code{"cliff"} or \code{"cohen"}, the effect size from
+#'   \code{\link{getEffectSize}} is added to the results. Not supported for
+#'   paired tests. (Default: \code{NULL})
 #' @param ... Additional arguments passed to \code{wilcox_test}.
 #'
-#' @return A \code{data.frame} with test results. If
-#'   \code{effect_size = "cliff"} or \code{"cohen"} and the comparison is
-#'   unpaired with exactly two groups, output also includes effect size columns.
+#' @return A \code{data.frame} with test results.
 #'
 #' @examples
 #' data(peerj13075, package = "mia")
@@ -25,49 +24,44 @@
 #' tse <- mia::agglomerateByRank(tse, "phylum")
 #' res <- getWilcoxonTest(tse, counts ~ Geographical_location)
 #'
-#' @importFrom dplyr left_join
+#' # Add Cliff's delta
+#' res <- getWilcoxonTest(
+#'     tse, counts ~ Geographical_location, effect.size = "cliff")
+#'
 #' @importFrom rstatix wilcox_test
+#' @importFrom dplyr left_join
 #' @export
 getWilcoxonTest <- function(
-  tse, formula, pair.by = NULL,
-  effect_size = c("none", "cliff", "cohen"), ...
-) {
+        tse, formula, pair.by = NULL, effect.size = NULL, ...) {
     if (length(all.vars(formula[[3]])) != 1L) {
         stop("Formula RHS must specify exactly one grouping variable.",
             call. = FALSE
         )
     }
-    effect_size <- match.arg(effect_size)
-
+    if (!is.null(effect.size)) {
+        if (!is.null(pair.by)) {
+            stop("'effect.size' is not supported for paired tests.",
+                call. = FALSE
+            )
+        }
+        effect.size <- match.arg(effect.size, c("cliff", "cohen"))
+    }
     df <- .get_long_data(tse, formula, pair.by)
     res <- .calculate_rstatix(
         df = df, formula = formula,
         pair.by = pair.by, FUN = wilcox_test, ...
     )
-
-    if (effect_size != "none") {
-        # Only compute effect sizes for unpaired two-group comparisons.
+    if (!is.null(effect.size)) {
+        # Only groups that were tested for each feature
         rhs <- .get_rhs(formula)
-        n_groups <- sum(!is.na(unique(df[[rhs]])))
-        if (is.null(pair.by) && n_groups == 2L) {
-            # Pre-filter tse to only tested features to avoid computing effect sizes
-            # for features without test results.
-            if (length(res$rownames) > 0L) {
-                tse_sub <- tse[res$rownames, , drop = FALSE]
-            } else {
-                tse_sub <- tse[0, , drop = FALSE]
-            }
-
-            delta_res <- getEffectSize(
-                tse = tse_sub,
-                formula = formula,
-                method = effect_size,
-                pair.by = pair.by
-            )
-            if (!is.null(delta_res)) {
-                res <- left_join(res, delta_res, by = "rownames")
-            }
-        }
+        tested <- c(
+            paste(res[["rownames"]], res[["group1"]]),
+            paste(res[["rownames"]], res[["group2"]])
+        )
+        df <- df[paste(df[["rownames"]], df[[rhs]]) %in% tested, ,
+            drop = FALSE]
+        es <- .calculate_effect_size(df, formula, effect.size)
+        res <- left_join(res, es, by = c("rownames", "group1", "group2"))
     }
     return(res)
 }
