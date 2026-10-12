@@ -23,13 +23,15 @@ Depends:
 Imports:
     broom,
     dplyr,
+    effsize,
     limma,
     logistf,
     rlang,
     rms,
     rstatix,
     stats,
-    tidyr
+    tidyr,
+    utils
 Suggests:
     mia,
     BiocStyle,
