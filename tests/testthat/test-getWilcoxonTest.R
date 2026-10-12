@@ -17,7 +17,8 @@ test_that("getWilcoxonTest with colData variable works", {
 
 test_that("getWilcoxonTest adds effect sizes for each comparison", {
     res <- getWilcoxonTest(
-        tse, counts ~ Geographical_location, effect.size = "cliff"
+        tse, counts ~ Geographical_location,
+        effect.size = "cliff"
     )
     es <- getEffectSize(tse, counts ~ Geographical_location)
     merged <- merge(
@@ -33,7 +34,8 @@ test_that("getWilcoxonTest adds effect sizes for each comparison", {
 test_that("getWilcoxonTest rejects effect sizes for paired tests", {
     expect_error(
         getWilcoxonTest(
-            tse, counts ~ Gender, pair.by = "Diet", effect.size = "cliff"
+            tse, counts ~ Gender,
+            pair.by = "Diet", effect.size = "cliff"
         ),
         "not supported for paired tests"
     )

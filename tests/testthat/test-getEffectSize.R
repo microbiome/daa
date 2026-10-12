@@ -12,7 +12,8 @@ test_that("getEffectSize matches effsize for each feature and pair", {
     expected <- effsize::cliff.delta(
         SummarizedExperiment::assay(tse, "counts")["Firmicutes", keep],
         factor(tse$Geographical_location[keep],
-            levels = c("Ahmednagar", "Pune"))
+            levels = c("Ahmednagar", "Pune")
+        )
     )
 
     expect_equal(row$effsize, unname(expected$estimate))
@@ -37,8 +38,10 @@ test_that("getEffectSize returns every feature and pair of groups", {
 
     expect_identical(
         colnames(res),
-        c("rownames", "group1", "group2", "effsize", "conf.low",
-            "conf.high", "magnitude")
+        c(
+            "rownames", "group1", "group2", "effsize", "conf.low",
+            "conf.high", "magnitude"
+        )
     )
     expect_equal(nrow(res), nrow(tse) * 3L)
 })

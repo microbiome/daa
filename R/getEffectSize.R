@@ -59,11 +59,17 @@ getEffectSize <- function(tse, formula, method = c("cliff", "cohen"), ...) {
 .calculate_effect_size <- function(df, formula, method, ...) {
     lhs <- .get_lhs(formula)
     rhs <- .get_rhs(formula)
-    FUN <- switch(method, cliff = cliff.delta, cohen = cohen.d)
+    FUN <- switch(method,
+        cliff = cliff.delta,
+        cohen = cohen.d
+    )
     # Pair groups in the same order as rstatix does
     group <- df[[rhs]]
-    groups <- if (is.factor(group)) levels(droplevels(group)) else
+    groups <- if (is.factor(group)) {
+        levels(droplevels(group))
+    } else {
         sort(unique(group))
+    }
     if (length(groups) < 2L) {
         stop("'", rhs, "' must have at least two groups.", call. = FALSE)
     }

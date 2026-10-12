@@ -26,13 +26,14 @@
 #'
 #' # Add Cliff's delta
 #' res <- getWilcoxonTest(
-#'     tse, counts ~ Geographical_location, effect.size = "cliff")
+#'     tse, counts ~ Geographical_location,
+#'     effect.size = "cliff"
+#' )
 #'
 #' @importFrom rstatix wilcox_test
 #' @importFrom dplyr left_join
 #' @export
-getWilcoxonTest <- function(
-        tse, formula, pair.by = NULL, effect.size = NULL, ...) {
+getWilcoxonTest <- function(tse, formula, pair.by = NULL, effect.size = NULL, ...) {
     if (length(all.vars(formula[[3]])) != 1L) {
         stop("Formula RHS must specify exactly one grouping variable.",
             call. = FALSE
@@ -59,7 +60,8 @@ getWilcoxonTest <- function(
             paste(res[["rownames"]], res[["group2"]])
         )
         df <- df[paste(df[["rownames"]], df[[rhs]]) %in% tested, ,
-            drop = FALSE]
+            drop = FALSE
+        ]
         es <- .calculate_effect_size(df, formula, effect.size)
         res <- left_join(res, es, by = c("rownames", "group1", "group2"))
     }
